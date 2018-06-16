@@ -1,7 +1,3 @@
-import java.util.*;
-import java.io.*;
-import java.math.*;
-
 /**
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
@@ -35,7 +31,7 @@ class Solution {
             if (oldInt != null) {
                 int tmpDelta = Math.abs(oldInt - integer);
                 System.err.println(tmpDelta);
-                if (bestDelta == null || tmpDelta < bestDelta){
+                if (bestDelta == null || tmpDelta < bestDelta) {
                     bestDelta = tmpDelta;
                 }
             }

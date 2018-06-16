@@ -3,9 +3,31 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>CodingGame</groupId>
-    <artifactId>myAI</artifactId>
+    <groupId>fr.duchet.loic</groupId>
+    <artifactId>CodingGame</artifactId>
     <version>1.0-SNAPSHOT</version>
+
+    <modules>
+        <module>ArtAscii</module>
+        <module>BottersOfTheGalaxy</module>
+        <module>ChevauxDeCourse</module>
+        <module>ChuckNorris</module>
+        <module>CodeRoyale</module>
+        <module>Defibrillateurs</module>
+        <module>DontPanic1</module>
+        <module>MarsLander1</module>
+        <module>MarsLander2</module>
+        <module>MeanMax</module>
+        <module>MimeType</module>
+        <module>PowerOfThor</module>
+        <module>ShadowsOfTheKnight1</module>
+        <module>SkynetRevolution1</module>
+        <module>Temperatures</module>
+        <module>TheDescent</module>
+        <module>TronBattle</module>
+        <module>WonderWoman</module>
+        <module>CodeOfKutulu</module>
+    </modules>
 
     <dependencies>
         <dependency>

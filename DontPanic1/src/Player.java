@@ -1,7 +1,3 @@
-import java.util.*;
-import java.io.*;
-import java.math.*;
-
 /**
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
@@ -39,9 +35,9 @@ class Player {
             System.err.println("clone " + cloneFloor + " " + clonePos);
 
             // action: WAIT or BLOCK
-            if ((targetPos != null && clonePos > targetPos && direction.equals("RIGHT")) || (cloneFloor == exitFloor && clonePos > exitPos && direction.equals("RIGHT")) ) {
+            if ((targetPos != null && clonePos > targetPos && direction.equals("RIGHT")) || (cloneFloor == exitFloor && clonePos > exitPos && direction.equals("RIGHT"))) {
                 System.out.println("BLOCK");
-            } else if ((targetPos != null &&  clonePos < targetPos && direction.equals("LEFT")) || (cloneFloor == exitFloor && clonePos < exitPos && direction.equals("LEFT"))) {
+            } else if ((targetPos != null && clonePos < targetPos && direction.equals("LEFT")) || (cloneFloor == exitFloor && clonePos < exitPos && direction.equals("LEFT"))) {
                 System.out.println("BLOCK");
             } else {
                 System.out.println("WAIT");

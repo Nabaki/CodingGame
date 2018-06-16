@@ -1,5 +1,3 @@
-import java.util.*;
-
 /**
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
@@ -211,7 +209,7 @@ class Grid {
     private boolean populateVoronoiGrid(Integer[][] voronoiGrid) {
         boolean notEnough = false;
         Integer[][] tmpVoronoiGrid = new Integer[MAX_X][MAX_Y];
-        for(int i = 0; i< MAX_X; i++){
+        for (int i = 0; i < MAX_X; i++) {
             tmpVoronoiGrid[i] = Arrays.copyOf(voronoiGrid[i], MAX_Y);
         }
         for (int y = 0; y < MAX_Y; y++) {
@@ -223,7 +221,7 @@ class Grid {
 
                         try {
                             Integer tmpPlayerId = tmpVoronoiGrid[x + directionEnum.x][y + directionEnum.y];
-                            if (tmpPlayerId != null &&  tmpPlayerId < 8) {
+                            if (tmpPlayerId != null && tmpPlayerId < 8) {
                                 if (playerId == null) {
                                     playerId = tmpPlayerId;
                                 } else if (!playerId.equals(tmpPlayerId)) {

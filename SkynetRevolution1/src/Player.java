@@ -1,5 +1,3 @@
-import java.util.*;
-
 /**
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
@@ -51,7 +49,7 @@ class Player {
 
         System.err.println("nodeMap");
         for (Integer integer : nodeMap.keySet()) {
-            System.err.println( integer + "->" + nodeMap.get(integer).toString());
+            System.err.println(integer + "->" + nodeMap.get(integer).toString());
         }
         System.err.println("----");
 
@@ -115,20 +113,20 @@ class Player {
         return cheminList;
     }
 
-    public static void printChemins(List<List<Integer>> chemins){
+    public static void printChemins(List<List<Integer>> chemins) {
         System.err.println("printChemins");
         for (List<Integer> chemin : chemins) {
             System.err.println(Arrays.toString(chemin.toArray()));
         }
     }
 
-    public static String getWorseNode(Integer depart, List<List<Integer>> chemins){
+    public static String getWorseNode(Integer depart, List<List<Integer>> chemins) {
 
         Integer worseSize = null;
         Integer worseNode = null;
         for (List<Integer> chemin : chemins) {
             Integer tmpSize = chemin.size();
-            if(worseSize == null || worseSize > tmpSize){
+            if (worseSize == null || worseSize > tmpSize) {
                 worseSize = tmpSize;
                 worseNode = chemin.get(0);
             }

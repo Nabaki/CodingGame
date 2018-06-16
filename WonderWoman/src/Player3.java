@@ -1,5 +1,3 @@
-import java.util.*;
-
 class Player3 implements Comparable<Player> {
 
     public static LevelEnum[][] grid;
@@ -441,7 +439,7 @@ class Player3 implements Comparable<Player> {
         System.err.println("legalActionsList");
 
         Action bestAction = null;
-        if(legalActionsList != null && !legalActionsList.isEmpty()){
+        if (legalActionsList != null && !legalActionsList.isEmpty()) {
             bestAction = legalActionsList.get(0);
             float bestScore = bestAction.points;
             int bestVoronoiPoints = 0;
@@ -693,7 +691,7 @@ class Player3 implements Comparable<Player> {
                         //System.err.println("OldEnnemi [" + oldEnnemiPosition[0] + "," + oldEnnemiPosition[1] + "] is not new ennemi [" + ennemiPosition[0] + "," + ennemiPosition[1] + "] cause of isDeltaClose " + isDeltaClose + " and isDistanceClose " + isDistanceClose);
                     }
                     //On vérifie les estimations d'avant étaient pour lui
-                } else if (!oldPotentialPositions.isEmpty() && ennemiPosition!=null) {
+                } else if (!oldPotentialPositions.isEmpty() && ennemiPosition != null) {
                     boolean isBreak = false;
                     for (int[] oldPotentialPosition : oldPotentialPositions) {
                         boolean isDeltaClose = isDeltaClose(getLvl(ennemiPosition), getLvl(oldPotentialPosition));

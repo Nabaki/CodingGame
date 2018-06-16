@@ -152,23 +152,23 @@ class Player {
                 }
                 System.out.println("SKILL " + target.x + " " + target.y );
             } else {*/
-                System.err.println("--- Get the closest tanker from DESTROYER");
-                Unit closestTanker = null;
-                Unit myDestroyer = playerMap.get(PlayerTypeEnum.ME).destroyer;
-                for (Unit unit : environnement.tankerSquad) {
-                    double tmpDistance = MathUtils.getDistance(unit, myDestroyer);
-                    if (closestTanker == null || tmpDistance < closestDistance) {
-                        closestTanker = unit;
-                        closestDistance = tmpDistance;
-                    }
+            System.err.println("--- Get the closest tanker from DESTROYER");
+            Unit closestTanker = null;
+            Unit myDestroyer = playerMap.get(PlayerTypeEnum.ME).destroyer;
+            for (Unit unit : environnement.tankerSquad) {
+                double tmpDistance = MathUtils.getDistance(unit, myDestroyer);
+                if (closestTanker == null || tmpDistance < closestDistance) {
+                    closestTanker = unit;
+                    closestDistance = tmpDistance;
                 }
-                System.err.println("Closest tanker is " + closestTanker);
+            }
+            System.err.println("Closest tanker is " + closestTanker);
 
-                if (closestTanker != null) {
-                    System.out.println(closestTanker.x + " " + closestTanker.y + " " + 300);
-                } else {
-                    System.out.println("WAIT");
-                }
+            if (closestTanker != null) {
+                System.out.println(closestTanker.x + " " + closestTanker.y + " " + 300);
+            } else {
+                System.out.println("WAIT");
+            }
             //}
 
             /************************************************************/

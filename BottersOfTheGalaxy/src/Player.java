@@ -1,5 +1,3 @@
-import java.util.*;
-
 /**
  * Made with love by AntiSquid, Illedan and Wildum.
  * You can help children learn to code while you participate by donating to CoderDojo.
@@ -469,7 +467,7 @@ abstract class RangedHero extends Hero {
                 System.err.println("Run in range of unit " + unitId);
                 action = this.runInRange(me, ennemi.units.get(unitId));
             } else */
-            if (distanceWithUnits != null && distanceWithHeroes!= null && distanceWithHeroes > distanceWithUnits) {
+            if (distanceWithUnits != null && distanceWithHeroes != null && distanceWithHeroes > distanceWithUnits) {
                 System.err.println("Last hit unit " + unitId);
                 action = this.runAndHit(me, ennemi.units.get(unitId));
             } else if (targetToDeny == null) {

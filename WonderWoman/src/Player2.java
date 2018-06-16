@@ -1,5 +1,3 @@
-import java.util.*;
-
 class Player2 implements Comparable<Player> {
 
     public static LevelEnum[][] grid;
@@ -452,7 +450,7 @@ class Player2 implements Comparable<Player> {
         System.err.println("legalActionsList");
 
         Action bestAction = null;
-        if(legalActionsList != null){
+        if (legalActionsList != null) {
             float bestScore = legalActionsList.get(0).points;
             int bestVoronoiPoints = 0;
 

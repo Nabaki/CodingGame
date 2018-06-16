@@ -1,7 +1,3 @@
-import java.util.*;
-import java.io.*;
-import java.math.*;
-
 /**
  * The while loop represents the game.
  * Each iteration represents a turn of the game

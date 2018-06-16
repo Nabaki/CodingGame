@@ -8,7 +8,7 @@
         <artifactId>CodingGame</artifactId>
         <version/>
     </parent>
-    
+
     <modelVersion/>
-    <artifactId>ChuckNorris</artifactId>
+    <artifactId>CodeOfKutulu</artifactId>
 </project>
