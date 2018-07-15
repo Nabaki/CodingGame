@@ -33,3 +33,4 @@ object Player extends App {
     println("WAIT") // MOVE <x> <y> | WAIT
   }
 }
+
