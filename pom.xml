@@ -25,9 +25,10 @@
         <module>SkynetRevolution1</module>
         <module>Temperatures</module>
         <module>TheDescent</module>
-        <module>TronBattle</module>
+        <module>Tron</module>
         <module>WonderWoman</module>
         <module>CodeOfKutulu</module>
+        <module>LegendsOfCodeAndMagic</module>
     </modules>
 
     <dependencies>
