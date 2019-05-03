@@ -29,6 +29,7 @@
         <module>WonderWoman</module>
         <module>CodeOfKutulu</module>
         <module>LegendsOfCodeAndMagic</module>
+        <module>XmasRush</module>
     </modules>
 
     <dependencies>
