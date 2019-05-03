@@ -1,17 +1,9 @@
+import javafx.util.Pair;
+
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 //238
 class Player implements Cloneable {
@@ -32,45 +24,39 @@ class Player implements Cloneable {
 
     /**
      * Pour chaque direction proposée, le joueur va vérifier dans quelle situation il sera et prendre la plus avantageuse
-     * Algorithme glouton car on prend juste le meilleur choix sur le coup.
+     * Algorithme glouton car on prend juste le meilleur choix sur le coup sans jouer plusieurs coups en avance.
+     * TODO détecter des angles, différencier les angles moi-moi, ennemi-moi et ennemi-ennemi
      * TODO Hamiltonian Path to find the better path taking the most nodes
      * TODO Maximum flow ?
      */
     private DirectionEnum choixDirection(TronGrid tronGrid, List<DirectionEnum> directions) {
-
-        int bestScore = -1;
-        DirectionEnum bestDirection = null;
-
-        /**
-         * TODO détecter des angles
-         * Différencier les angles moi-moi, ennemi-moi et ennemi-ennemi
-         */
-        for (DirectionEnum direction : directions) {
-            Location newLocation = new Location(direction.x + location.x, direction.y + location.y);
-            int tmpScore = scoreNewPosition(tronGrid, newLocation);
-            System.err.println("Choix direction : " + direction + " -> " + tmpScore);
-            if (bestDirection == null || tmpScore > bestScore) {
-                bestDirection = direction;
-                bestScore = tmpScore;
-            }
-        }
-        return bestDirection;
+        return directions.stream()
+                .map(d -> new Pair<>(d, scoreNewPosition(tronGrid, new Location(d.x + location.x, d.y + location.y))))
+                .sorted((p1, p2) -> -p1.getValue().compareTo(p2.getValue()))
+                .peek(p -> System.err.println("Choix direction : " + p.getKey() + " -> " + p.getValue()))
+                .map(Pair::getKey)
+                .findFirst()
+                .orElseGet(null);
     }
 
+    /**
+     * Choix de la meilleur direction à prendre en fonction de si l'on est en mode "survie seul" ou "guerre de territoire"
+     */
     public DirectionEnum bestMove(TronGrid tronGrid, List<Player> players) {
-        //Choix entre l'algo quand on est seul ou quand on doit définir son territoire
         boolean isAlone = new LonelyGrid(tronGrid).isAlone(id, players);
+
         DirectionEnum finalMove;
         if (isAlone) {
-            List<DirectionEnum> directions = new ArrayList<>(3);
-            for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Player tmpNewPlayer = clone().move(directionEnum);
-                if (tronGrid.isValidePosition(tmpNewPlayer.location.x, tmpNewPlayer.location.y) && tronGrid.isEmpty(tmpNewPlayer.location.x, tmpNewPlayer.location.y)) {
-                    directions.add(directionEnum);
-                }
-            }
+            // Algorithme de survie seul -> Toutes les positions sont vérifiées
+            List<DirectionEnum> directions = Arrays.stream(DirectionEnum.values())
+                    .map(d -> new Pair<>(d, this.location.move(d)))
+                    .filter(p -> tronGrid.isValidePosition(p.getKey().x, p.getKey().y) && tronGrid.isEmpty(p.getKey().x, p.getKey().y))
+                    .map(Pair::getKey)
+                    .collect(Collectors.toList());
+
             finalMove = choixDirection(tronGrid, directions);
         } else {
+            // Algorithme de guerre de territoire
             List<DirectionEnum> moves = new ArrayList<>(3);
             Integer bestScore = null;
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
@@ -198,7 +184,6 @@ class Player implements Cloneable {
     public static void main(String args[]) {
         //InitDatas
         TronGrid tronGrid = new TronGrid(30, 20);
-        TronGrid tronBack = new TronGrid(tronGrid.MAX_X, tronGrid.MAX_Y);
         List<Player> players = null;
         boolean isInit = false;
 
@@ -246,9 +231,6 @@ class Player implements Cloneable {
             DirectionEnum finalMove = myPlayer.bestMove(tronGrid, players);
             System.err.println("---");
 
-            //Keep safe
-            tronBack.copy(tronGrid);
-
             Map<DirectionEnum, Integer> scoreMoves = players.get(myId).scoreMoves(tronGrid, players);
             while (Duration.between(start, Instant.now()).toMillis() < 70) {
                 //Min
@@ -258,9 +240,9 @@ class Player implements Cloneable {
             }
             Optional<DirectionEnum> finalMoveBis =
                     scoreMoves.entrySet().stream()
-                    .sorted((e1, e2) -> -e1.getValue().compareTo(e2.getValue()))
-                    .findFirst()
-                    .map(Map.Entry::getKey);
+                            .sorted((e1, e2) -> -e1.getValue().compareTo(e2.getValue()))
+                            .findFirst()
+                            .map(Map.Entry::getKey);
 
             //Timeout
             //First turn 1000ms
@@ -290,22 +272,22 @@ class Player implements Cloneable {
 
 abstract class AbstractGrid<T> {
 
-    private final T DEFAULT_VALUE;
+    private final T EMPTY_NODE;
     protected final int MAX_X;
     protected final int MAX_Y;
 
     protected List<List<T>> tab;
 
-    protected AbstractGrid(int maxX, int maxY, T defaultValue) {
+    protected AbstractGrid(int maxX, int maxY, T emptyNode) {
         MAX_X = maxX;
         MAX_Y = maxY;
-        DEFAULT_VALUE = defaultValue;
+        EMPTY_NODE = emptyNode;
 
         tab = new ArrayList<>(MAX_X);
         for (int x = 0; x < MAX_X; x++) {
             tab.add(new ArrayList<>(MAX_Y));
             for (int y = 0; y < MAX_Y; y++) {
-                tab.get(x).add(DEFAULT_VALUE);
+                tab.get(x).add(EMPTY_NODE);
             }
         }
     }
@@ -323,7 +305,7 @@ abstract class AbstractGrid<T> {
     }
 
     protected boolean isEmpty(int x, int y) {
-        return get(x, y) == DEFAULT_VALUE;
+        return get(x, y) == EMPTY_NODE;
     }
 
     protected void printGrid(String defaultString) {
@@ -331,13 +313,13 @@ abstract class AbstractGrid<T> {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 T node = get(x, y);
-                if (!node.equals(DEFAULT_VALUE)) {
+                if (!node.equals(EMPTY_NODE)) {
                     System.err.print(node.toString());
                 } else {
                     System.err.print(defaultString);
                 }
             }
-            System.err.println("");
+            System.err.println();
         }
     }
 
@@ -354,31 +336,18 @@ abstract class AbstractGrid<T> {
     }
 
     protected T set(Location location, T value) {
-        return tab.get(location.x).set(location.y, value);
+        return set(location.x, location.y, value);
+    }
+
+    protected T setEmpty(int x, int y) {
+        return set(x, y, EMPTY_NODE);
+    }
+
+    protected T setEmpty(Location location) {
+        return setEmpty(location.x, location.y);
     }
 
     public abstract void printGrid();
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AbstractGrid)) return false;
-
-        AbstractGrid<?> that = (AbstractGrid<?>) o;
-
-        if (MAX_X != that.MAX_X) return false;
-        if (MAX_Y != that.MAX_Y) return false;
-        return tab != null ? tab.equals(that.tab) : that.tab == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = MAX_X;
-        result = 31 * result + MAX_Y;
-        result = 31 * result + (tab != null ? tab.hashCode() : 0);
-        return result;
-    }
 }
 
 class TronGrid extends AbstractGrid<Integer> {
@@ -394,19 +363,21 @@ class TronGrid extends AbstractGrid<Integer> {
     public void resetGridForPlayerId(int idPlayer) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (!isEmpty(x, y) && get(x, y) == idPlayer) {
-                    set(x, y, null);
+                if (get(x, y) == idPlayer) {
+                    setEmpty(x, y);
                 }
             }
         }
     }
 
-    public void copy(TronGrid tronGrid) {
+    public TronGrid clone() {
+        TronGrid clone = new TronGrid(this.MAX_X, this.MAX_Y);
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                set(x, y, tronGrid.get(x, y));
+                clone.set(x, y, this.get(x, y));
             }
         }
+        return clone;
     }
 }
 
