@@ -8,17 +8,13 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>LegendsOfCodeAndMagic</artifactId>
-
-    <properties>
-        <scalatest.version>3.0.5</scalatest.version>
-    </properties>
+    <artifactId>TronBattle</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.12</artifactId>
-            <version>${scalatest.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
