@@ -1,22 +1,22 @@
-import javafx.util.Pair;
+
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-//238
 class Player implements Cloneable {
 
-    public final int id;
-    public Location location;
-    public boolean isDead = false;
+    final int id;
+    Location location;
+    boolean isDead = false;
 
-    public Player(int id) {
+    Player(int id) {
         this.id = id;
     }
 
-    public Player move(DirectionEnum directionEnum) {
+    private Player move(DirectionEnum directionEnum) {
         location.x += directionEnum.x;
         location.y += directionEnum.y;
         return this;
@@ -31,13 +31,13 @@ class Player implements Cloneable {
      */
     private DirectionEnum choixDirection(TronGrid tronGrid, List<DirectionEnum> directions) {
 
-        int bestScore = -1;
+        Integer bestScore = null;
         DirectionEnum bestDirection = null;
 
         for (DirectionEnum direction : directions) {
             Location newLocation = new Location(direction.x + location.x, direction.y + location.y);
-            int tmpScore = scoreNewPosition(tronGrid, newLocation);
-            System.err.println("Choix direction : " + direction + " -> " + tmpScore);
+            int tmpScore = scoreTypeNode(tronGrid, newLocation);
+            System.err.println("Score type de noeud : " + direction + " -> " + tmpScore);
             if (bestDirection == null || tmpScore > bestScore) {
                 bestDirection = direction;
                 bestScore = tmpScore;
@@ -49,76 +49,57 @@ class Player implements Cloneable {
     /**
      * Choix de la meilleur direction à prendre en fonction de si l'on est en mode "survie seul" ou "guerre de territoire"
      */
-    public DirectionEnum bestMove(TronGrid tronGrid, List<Player> players) {
-        //boolean isAlone = new LonelyGrid(voronoiGrid).isAlone(id, players);
-        //System.err.println("isAlone : " + isAlone);
-        boolean isAlone = false;
+    private DirectionEnum bestMove(TronGrid tronGrid, List<Player> players) {
+        boolean isAlone = new LonelyGrid(tronGrid).isAlone(id, players);
+        System.err.println("isAlone : " + isAlone);
 
-        DirectionEnum finalMove;
-        if (isAlone) {
-            //TODO à vérifier si c'est pertinant
-            // Algorithme de survie seul -> Toutes les positions sont vérifiées
-            List<DirectionEnum> directions = Arrays.stream(DirectionEnum.values())
-                    .map(d -> new Pair<>(d, this.location.move(d)))
-                    .filter(p -> tronGrid.isValidePosition(p.getKey().x, p.getKey().y) && tronGrid.isEmpty(p.getKey().x, p.getKey().y))
-                    .map(Pair::getKey)
-                    .collect(Collectors.toList());
+        //Liste des directions possibles
+        List<DirectionEnum> directions = Arrays.stream(DirectionEnum.values())
+                .filter(d -> {
+                    Location newLocation = this.location.move(d);
+                    return tronGrid.isValidePosition(newLocation) && tronGrid.isEmpty(newLocation);
+                })
+                .collect(Collectors.toList());
 
-            finalMove = choixDirection(tronGrid, directions);
-        } else {
-            // Algorithme de guerre de territoire
-            List<DirectionEnum> moves = new ArrayList<>(3);
-            Integer bestScore = null;
-            for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Player tmpNewPlayer = clone().move(directionEnum);
-                if (tronGrid.isValidePosition(tmpNewPlayer.location.x, tmpNewPlayer.location.y) && tronGrid.isEmpty(tmpNewPlayer.location.x, tmpNewPlayer.location.y)) {
-                    List<Player> tmpList = new ArrayList<>(players);
-                    tmpList.set(id, tmpNewPlayer);
-                    VoronoiGrid voronoiGrid = new VoronoiGrid(tronGrid, id, tmpList);
-                    //voronoiGrid.printGrid();
-                    int tmpScore = voronoiGrid.countPoints(id);
-                    System.err.println("Voronoi " + directionEnum.name() + " -> " + tmpScore);
-                    if (bestScore == null || bestScore < tmpScore) {
-                        bestScore = tmpScore;
-                        moves.clear();
-                        moves.add(directionEnum);
-                    } else if (bestScore == tmpScore) {
-                        moves.add(directionEnum);
-                    }
-                }
-            }
+        System.err.println("Directions valides : " + directions);
 
-            if (moves.size() == 1) {
-                finalMove = moves.get(0);
-            } else {
-                finalMove = choixDirection(tronGrid, moves);
-            }
+        // Si l'on est seul on saute l'étape voronoi qui n'a pas trop d'intéret si on est seul
+        if (!isAlone) {
+            // Algorithme de guerre de territoire (Voronoi)
+            TreeMap<Integer, List<DirectionEnum>> collect = directions.stream()
+                    .collect(Collectors.groupingBy(
+                            d -> useVoronoiInThisDirection(tronGrid, players, id, d),
+                            TreeMap::new,
+                            Collectors.toList()
+                    ));
+
+            directions = collect.lastEntry().getValue();
         }
-        return finalMove;
+
+        if (directions.size() == 1) {
+            return directions.get(0);
+        }
+        return choixDirection(tronGrid, directions);
     }
 
     /**
-     * TODO détecter des angles
-     * Différencier les angles moi-moi, ennemi-moi et ennemi-ennemi
+     * Différencier les angles moi-moi, ennemi-moi et ennemi-ennemi.
+     * On regarde si les cases autour de newLocation sont des murs alliés/ennemis, des cases vides
      */
-    private int scoreNewPosition(TronGrid tronGrid, Location newLocation) {
+    private int scoreTypeNode(TronGrid tronGrid, Location newLocation) {
         List<DirectionEnum> connections = new ArrayList<>(3);
         List<DirectionEnum> ennemiWalls = new ArrayList<>(3);
         List<DirectionEnum> myWalls = new ArrayList<>(4);
 
         for (DirectionEnum directionEnum : DirectionEnum.values()) {
-            int tmpX = newLocation.x + directionEnum.x;
-            int tmpY = newLocation.y + directionEnum.y;
-            boolean isValidePosition = tronGrid.isValidePosition(tmpX, tmpY);
+            Location tmpLocation = newLocation.move(directionEnum);
 
-            if (isValidePosition && tronGrid.isEmpty(tmpX, tmpY)) {
-                connections.add(directionEnum);
-            } else if (!isValidePosition || id == tronGrid.get(tmpX, tmpY)) {
+            if (!tronGrid.isValidePosition(tmpLocation) || tronGrid.get(tmpLocation) == id) {
                 myWalls.add(directionEnum);
-            } else if (tronGrid.get(tmpX, tmpY) != id) {
-                ennemiWalls.add(directionEnum);
+            } else if (tronGrid.isEmpty(tmpLocation)) {
+                connections.add(directionEnum);
             } else {
-                throw new IllegalStateException("TronGrid can't be in this state : " + tronGrid.get(tmpX, tmpY));
+                ennemiWalls.add(directionEnum);
             }
         }
 
@@ -128,6 +109,7 @@ class Player implements Cloneable {
             tmpScore = 0;
         } else if (connections.size() == 1) {
             //Dans un couloir, pas forcément la meilleure idée...
+            //Score = [-1, ..., 3]
             tmpScore = myWalls.size() - ennemiWalls.size();
 
                 /*//Ennemi walls
@@ -154,15 +136,16 @@ class Player implements Cloneable {
                     }
                 }*/
         } else if (connections.size() == 2) {
-            //Biconnection, risque de blocage.
+            //Biconnection (dans un angle), risque de blocage.
             //On privilègie les chemins longeant les murs alliés qu'ennemi pour se débloquer si l'adversaire meurt.
+            //Score = [0, 1].
             tmpScore = myWalls.size() - ennemiWalls.size();
         } else {
             //Connection libre, toujours mieux qu'une mort, généralement moins bien qu'un couloir mais risque de bloquer de nouvelles solutions
+            //Score = 1
             tmpScore = myWalls.size();
         }
 
-        System.err.println("Choix direction : " + newLocation + " -> " + tmpScore);
         return tmpScore;
     }
 
@@ -224,6 +207,16 @@ class Player implements Cloneable {
         }
     }
 
+    int useVoronoiInThisDirection(TronGrid tronGrid, List<Player> players, int myId, DirectionEnum direction) {
+        //La liste des joueurs et de leur position est mise à jour.
+        List<Player> newPlayers = new ArrayList<>(players);
+        newPlayers.set(myId, clone().move(direction));
+
+        int voronoiScore = new VoronoiGrid(tronGrid, myId, newPlayers).countPoints(myId);
+        System.err.println("Voronoi " + direction.name() + " -> " + voronoiScore);
+        return voronoiScore;
+    }
+
     @Override
     public Player clone() {
         Player player = new Player(id);
@@ -244,12 +237,11 @@ class Player implements Cloneable {
 abstract class AbstractGrid<T> {
 
     private final T EMPTY_NODE;
-    protected final int MAX_X;
-    protected final int MAX_Y;
+    private final List<List<T>> tab;
+    final int MAX_X;
+    final int MAX_Y;
 
-    protected List<List<T>> tab;
-
-    protected AbstractGrid(int maxX, int maxY, T emptyNode) {
+    AbstractGrid(int maxX, int maxY, T emptyNode) {
         MAX_X = maxX;
         MAX_Y = maxY;
         EMPTY_NODE = emptyNode;
@@ -263,24 +255,23 @@ abstract class AbstractGrid<T> {
         }
     }
 
-    protected boolean isValidePosition(Location location) {
+    boolean isValidePosition(Location location) {
         return isValidePosition(location.x, location.y);
     }
 
-    protected boolean isValidePosition(int x, int y) {
+    boolean isValidePosition(int x, int y) {
         return x >= 0 && y >= 0 && x < MAX_X && y < MAX_Y;
     }
 
-    protected boolean isEmpty(Location location) {
+    boolean isEmpty(Location location) {
         return isEmpty(location.x, location.y);
     }
 
-    protected boolean isEmpty(int x, int y) {
+    boolean isEmpty(int x, int y) {
         return get(x, y) == EMPTY_NODE;
     }
 
-    protected void printGrid(String defaultString) {
-        System.err.println("Print grid");
+    void printGrid(String defaultString) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 T node = get(x, y);
@@ -292,30 +283,31 @@ abstract class AbstractGrid<T> {
             }
             System.err.println();
         }
+        System.err.println();
     }
 
-    protected T get(int x, int y) {
+    T get(int x, int y) {
         return tab.get(x).get(y);
     }
 
-    protected T get(Location location) {
+    T get(Location location) {
         return get(location.x, location.y);
     }
 
-    protected T set(int x, int y, T value) {
-        return tab.get(x).set(y, value);
+    void set(int x, int y, T value) {
+        tab.get(x).set(y, value);
     }
 
-    protected T set(Location location, T value) {
-        return set(location.x, location.y, value);
+    void set(Location location, T value) {
+        set(location.x, location.y, value);
     }
 
-    protected T setEmpty(int x, int y) {
-        return set(x, y, EMPTY_NODE);
+    void setEmpty(int x, int y) {
+        set(x, y, EMPTY_NODE);
     }
 
-    protected T setEmpty(Location location) {
-        return setEmpty(location.x, location.y);
+    void setEmpty(Location location) {
+        setEmpty(location.x, location.y);
     }
 
     public abstract void printGrid();
@@ -323,27 +315,23 @@ abstract class AbstractGrid<T> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AbstractGrid)) return false;
-
+        if (o == null || getClass() != o.getClass()) return false;
         AbstractGrid<?> that = (AbstractGrid<?>) o;
-
-        if (MAX_X != that.MAX_X) return false;
-        if (MAX_Y != that.MAX_Y) return false;
-        return tab != null ? tab.equals(that.tab) : that.tab == null;
+        return MAX_X == that.MAX_X &&
+                MAX_Y == that.MAX_Y &&
+                Objects.equals(EMPTY_NODE, that.EMPTY_NODE) &&
+                Objects.equals(tab, that.tab);
     }
 
     @Override
     public int hashCode() {
-        int result = MAX_X;
-        result = 31 * result + MAX_Y;
-        result = 31 * result + (tab != null ? tab.hashCode() : 0);
-        return result;
+        return Objects.hash(EMPTY_NODE, tab, MAX_X, MAX_Y);
     }
 }
 
-class TronGrid extends AbstractGrid<Integer> {
+class TronGrid extends AbstractGrid<Integer> implements Cloneable {
 
-    public TronGrid(int maxX, int maxY) {
+    TronGrid(int maxX, int maxY) {
         super(maxX, maxY, -1);
     }
 
@@ -352,7 +340,7 @@ class TronGrid extends AbstractGrid<Integer> {
         printGrid("-");
     }
 
-    public void resetGridForPlayerId(int idPlayer) {
+    void resetGridForPlayerId(int idPlayer) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 if (get(x, y) == idPlayer) {
@@ -362,6 +350,7 @@ class TronGrid extends AbstractGrid<Integer> {
         }
     }
 
+    @Override
     public TronGrid clone() {
         TronGrid clone = new TronGrid(this.MAX_X, this.MAX_Y);
         for (int y = 0; y < MAX_Y; y++) {
@@ -375,20 +364,19 @@ class TronGrid extends AbstractGrid<Integer> {
 
 class LonelyGrid extends AbstractGrid<Boolean> {
 
-    //FIXME Utiliser VoronoiGrid plutôt ?
-    public LonelyGrid(VoronoiGrid voronoiGrid) {
-        super(voronoiGrid.MAX_X, voronoiGrid.MAX_Y, true);
+    LonelyGrid(TronGrid tronGrid) {
+        super(tronGrid.MAX_X, tronGrid.MAX_Y, true);
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if(voronoiGrid.get(x, y) == VoronoiGrid.WALL){
+                if (!tronGrid.isEmpty(x, y)) {
                     set(x, y, false);
                 }
             }
         }
     }
 
-    public boolean isAlone(int id, List<Player> players) {
+    boolean isAlone(int id, List<Player> players) {
         List<Location> ennemisLocation = players.stream()
                 .filter(player -> player.id != id)
                 .map(player -> player.location)
@@ -428,12 +416,12 @@ class LonelyGrid extends AbstractGrid<Boolean> {
 
 class VoronoiGrid extends AbstractGrid<Integer> {
 
-    public static final int WALL = 8;
+    private static final int WALL = 8;
 
     /**
      * ATTENTION SEULEMENT POUR LES TESTS !
      */
-    public VoronoiGrid(int maxX, int maxY) {
+    VoronoiGrid(int maxX, int maxY) {
         super(maxX, maxY, -1);
     }
 
@@ -443,7 +431,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * Chaque récursion simule un tour de jeu.
      * A la fin la carte est séparée entre les murs (WALL), les zones atteintes en premier par tel ou tel joueur (0,1,2,3) ou des zones qui ne peuvent être atteintes (null)
      */
-    public VoronoiGrid(TronGrid tronGrid, int firstPlayerToMove, List<Player> players) {
+    VoronoiGrid(TronGrid tronGrid, int lastPlayerToMove, List<Player> players) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y, -1);
 
         //Init walls. If tronGrid is not empty then mark the location as 8 (wall)
@@ -454,22 +442,28 @@ class VoronoiGrid extends AbstractGrid<Integer> {
                 }
             }
         }
-        //Init player position.
-        List<List<Location>> locationsByPlayer = new ArrayList<>(4);
-        for (Player player : players) {
-            List<Location> locations = new ArrayList<>(1);
-            if (!player.isDead) {
-                set(player.location, WALL);
-                locations.add(player.location);
+
+        //Init players position.
+        Map<Player, List<Location>> locationsByPlayer = new HashMap<>(players.size());
+        players.forEach(p -> {
+            List<Location> locations;
+            if (!p.isDead) {
+                set(p.location, WALL);
+                locations = Collections.singletonList(p.location);
+            } else {
+                locations = Collections.emptyList();
             }
-            locationsByPlayer.add(locations);
+            locationsByPlayer.put(p, locations);
+        });
+
+        int idPlayerTurn = lastPlayerToMove;
+        while (!locationsByPlayer.values().stream().allMatch(List::isEmpty)) {
+            idPlayerTurn = (idPlayerTurn + 1) % players.size();
+            Player playerTurn = players.get(idPlayerTurn);
+            locationsByPlayer.put(playerTurn, voronoiLoop(playerTurn, locationsByPlayer.get(playerTurn)));
         }
 
-        int playerTurn = firstPlayerToMove;
-        while (!locationsByPlayer.stream().allMatch(List::isEmpty)) {
-            playerTurn = (playerTurn + 1) % players.size();
-            locationsByPlayer.set(playerTurn, voronoiLoop(players.get(playerTurn), locationsByPlayer.get(playerTurn)));
-        }
+        //printGrid();
     }
 
     /**
@@ -480,22 +474,11 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * @return les futurs emplacements où le joueur pourra être à son prochain tour ce joueurs
      */
     private List<Location> voronoiLoop(Player player, List<Location> locations) {
-        if (locations.isEmpty()) {
-            return locations;
-        }
-
-        List<Location> newLocations = new ArrayList<>(100);
-        for (Location location : locations) {
-            for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Location newLocation = new Location(location.x + directionEnum.x, location.y + directionEnum.y);
-                if (isValidePosition(newLocation) && isEmpty(newLocation)) {
-                    set(newLocation, player.id);
-                    newLocations.add(newLocation);
-                }
-            }
-        }
-
-        return newLocations;
+        return locations.stream()
+                .flatMap(l -> Arrays.stream(DirectionEnum.values()).map(l::move))
+                .filter(l -> isValidePosition(l) && isEmpty(l))
+                .peek(l -> set(l, player.id))
+                .collect(Collectors.toList());
     }
 
     public void printGrid() {
@@ -503,7 +486,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
     }
 
     //Connected-component_labeling
-    public int countPoints(int targetPlayerId) {
+    int countPoints(int targetPlayerId) {
         VoronoiGrid regionGrid = new VoronoiGrid(MAX_X, MAX_Y);
         List<List<Integer>> links = new ArrayList<>(10);
         int regionCounter = 0;
@@ -511,19 +494,21 @@ class VoronoiGrid extends AbstractGrid<Integer> {
         //First pass
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (get(x, y) != null && get(x, y) == targetPlayerId) {
+                if (get(x, y) == targetPlayerId) {
                     Location upLocation = new Location(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
                     Location leftLocation = new Location(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
-                    Integer upRegionValue = null, leftRegionValue = null;
-                    boolean upInRange = false, leftInRange = false;
+                    Integer upRegionValue = null;
+                    Integer leftRegionValue = null;
+                    boolean upInRange = false;
+                    boolean leftInRange = false;
 
                     if (isValidePosition(upLocation)) {
-                        upInRange = get(upLocation) != null && get(upLocation).equals(targetPlayerId);
+                        upInRange = get(upLocation) == targetPlayerId;
                         upRegionValue = regionGrid.get(upLocation);
                     }
 
                     if (isValidePosition(leftLocation)) {
-                        leftInRange = get(leftLocation) != null && get(leftLocation).equals(targetPlayerId);
+                        leftInRange = get(leftLocation) == targetPlayerId;
                         leftRegionValue = regionGrid.get(leftLocation);
                     }
 
@@ -558,9 +543,9 @@ class VoronoiGrid extends AbstractGrid<Integer> {
                                 links.add(new ArrayList<>(Arrays.asList(upRegionValue, leftRegionValue)));
                             }
                         }
-                    } else if (upInRange && !leftInRange) {
+                    } else if (upInRange) { // && !leftInRange
                         regionGrid.set(x, y, upRegionValue);
-                    } else if (leftInRange && !upInRange) {
+                    } else { // leftInRange && !upInRange
                         regionGrid.set(x, y, leftRegionValue);
                     }
                 }
@@ -568,18 +553,13 @@ class VoronoiGrid extends AbstractGrid<Integer> {
         }
 
         //Second pass
-        List<Integer> points = new ArrayList<Integer>(links.size()) {{
-            for (int i = 0; i < links.size(); i++) {
-                add(0);
-            }
-        }};
+        List<Integer> points = Stream.generate(() -> 0).limit(links.size()).collect(Collectors.toList());
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                Integer region = regionGrid.get(x, y);
-                if (region != null) {
+                if (!regionGrid.isEmpty(x, y)) {
                     for (int i = 0; i < links.size(); i++) {
-                        if (links.get(i).contains(region)) {
+                        if (links.get(i).contains(regionGrid.get(x, y))) {
                             points.set(i, points.get(i) + 1);
                         }
                     }
@@ -617,8 +597,6 @@ class VoronoiGrid extends AbstractGrid<Integer> {
         }
     }
 }
-
-
 
 enum DirectionEnum {
 
@@ -660,20 +638,20 @@ enum DirectionEnum {
 }
 
 class Location {
-    public int x;
-    public int y;
+    int x;
+    int y;
 
-    public Location(int x, int y) {
+    Location(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
-    public Location(Location location) {
+    Location(Location location) {
         this.x = location.x;
         this.y = location.y;
     }
 
-    public Location move(DirectionEnum directionEnum) {
+    Location move(DirectionEnum directionEnum) {
         return new Location(x + directionEnum.x, y + directionEnum.y);
     }
 

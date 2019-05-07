@@ -1,3 +1,4 @@
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -15,7 +16,8 @@ public class DfsGridTest {
             while ((line = br.readLine()) != null) {
                 String[] nodes = line.split("\\|");
                 for (int idxX = 0; idxX < nodes.length; idxX++) {
-                    DfsNode tmpNode = DfsNode.fromString(nodes[idxX]);
+                    String[] datas = nodes[idxX].split(",");
+                    DfsNode tmpNode = new DfsNode(Integer.parseInt(datas[0]), Integer.parseInt(datas[1]));
                     dfsGrid.set(idxX, idxY, tmpNode);
                 }
                 idxY++;
@@ -37,13 +39,15 @@ public class DfsGridTest {
 
         //When
         DfsGrid result = new DfsGrid(tronGrid, player);
+        System.err.println("Result grid");
         result.printGrid();
 
         //Then
-        /*DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/emptyGrid/expected.txt", 3, 3);
+        DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/emptyGrid/expected.txt", 3, 3);
+        System.err.println("Expected grid");
         expected.printGrid();
 
-        Assert.assertEquals(result, expected);*/
+        Assert.assertEquals(result, expected);
     }
 
     @Test
@@ -56,12 +60,14 @@ public class DfsGridTest {
 
         //When
         DfsGrid result = new DfsGrid(tronGrid, player);
+        System.err.println("Result grid");
         result.printGrid();
 
         //Then
-        /*DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/simpleCase/expected.txt", 3, 3);
+        DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/simpleCase/expected.txt", 3, 3);
+        System.err.println("Expected grid");
         expected.printGrid();
 
-        Assert.assertEquals(result, expected);*/
+        Assert.assertEquals(result, expected);
     }
 }

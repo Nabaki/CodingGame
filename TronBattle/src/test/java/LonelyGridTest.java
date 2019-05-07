@@ -12,12 +12,12 @@ public class LonelyGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/alonePlayer.txt", 3, 3);
         tronGrid.printGrid();
-        List<Player> players = Collections.singletonList(new Player(0));
-        players.get(0).location = new Location(0, 0);
+        Player player = new Player(0);
+        player.location = new Location(0, 0);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
-        boolean isAlone = result.isAlone(0, players);
+        boolean isAlone = result.isAlone(0, Collections.singletonList(player));
         result.printGrid();
 
         //Then
@@ -29,13 +29,15 @@ public class LonelyGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/notAlonePlayer.txt", 3, 3);
         tronGrid.printGrid();
-        List<Player> players = Arrays.asList(new Player(0), new Player(1));
-        players.get(0).location = new Location(0, 0);
-        players.get(1).location = new Location(2, 2);
+
+        Player player0 = new Player(0);
+        player0.location = new Location(0, 0);
+        Player player1 = new Player(1);
+        player1.location = new Location(2, 2);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
-        boolean isAlone = result.isAlone(0, players);
+        boolean isAlone = result.isAlone(0, Arrays.asList(player0, player1));
         result.printGrid();
 
         //Then
@@ -47,14 +49,15 @@ public class LonelyGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/trappedPlayer.txt", 3, 3);
         tronGrid.printGrid();
-        List<Player> players = Arrays.asList(new Player(0), new Player(1));
-        players.get(0).location = new Location(0, 0);
-        players.get(1).location = new Location(2, 2);
+        Player player0 = new Player(0);
+        player0.location = new Location(0, 0);
+        Player player1 = new Player(1);
+        player1.location = new Location(2, 2);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
         result.printGrid();
-        boolean isAlone = result.isAlone(0, players);
+        boolean isAlone = result.isAlone(0, Arrays.asList(player0, player1));
         result.printGrid();
 
         //Then

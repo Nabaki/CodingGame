@@ -18,7 +18,7 @@ public class ConnectionGridTest {
         players.add(player);
 
         //WHEN
-        ConnectionGrid connectionGrid = new ConnectionGrid(tronGrid, players, player.id);
+        ConnectionGrid connectionGrid = new ConnectionGrid(tronGrid, players);
 
         //THEN
         connectionGrid.printGrid();

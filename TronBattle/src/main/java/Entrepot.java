@@ -2,24 +2,23 @@ import java.util.*;
 
 
 class DfsNode {
-    public int depth;
-    public int low;
-    public Location parent;
-    public boolean articulation = false;
+    Integer depth;
+    Integer low;
+    Location parent;
+    boolean articulation = false;
+    boolean wall = false;
 
-    public DfsNode() {
-        this.depth = -1;
-        this.low = -1;
-        this.parent = null;
+    DfsNode() {
+        this.wall = true;
     }
 
-    public DfsNode(int depth, int low) {
+    DfsNode(int depth, int low) {
         this.depth = depth;
         this.low = low;
     }
 
-    public DfsNode(Location location) {
-        this.parent = location;
+    DfsNode(Location parent) {
+        this.parent = parent;
     }
 
     @Override
@@ -27,46 +26,33 @@ class DfsNode {
         return "[" + depth + "," + low + ']';
     }
 
-    public static DfsNode fromString(String dfsNode) {
-        String[] datas = dfsNode.split(",");
-        return new DfsNode(Integer.parseInt(datas[0]), Integer.parseInt(datas[1]));
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof DfsNode)) return false;
-
+        if (o == null || getClass() != o.getClass()) return false;
         DfsNode dfsNode = (DfsNode) o;
-
-        if (depth != dfsNode.depth) return false;
-        if (low != dfsNode.low) return false;
-        if (articulation != dfsNode.articulation) return false;
-        return parent != null ? parent.equals(dfsNode.parent) : dfsNode.parent == null;
-
+        return articulation == dfsNode.articulation &&
+                Objects.equals(depth, dfsNode.depth) &&
+                Objects.equals(low, dfsNode.low) &&
+                Objects.equals(parent, dfsNode.parent);
     }
 
     @Override
     public int hashCode() {
-        int result = depth;
-        result = 31 * result + low;
-        result = 31 * result + (parent != null ? parent.hashCode() : 0);
-        result = 31 * result + (articulation ? 1 : 0);
-        return result;
+        return Objects.hash(depth, low, parent, articulation);
     }
 }
 
-
-
 class DfsGrid extends AbstractGrid<DfsNode> {
 
-    public DfsGrid(int maxX, int maxY) {
+    DfsGrid(int maxX, int maxY) {
         super(maxX, maxY, null);
     }
 
-    public DfsGrid(TronGrid tronGrid, Player player) {
+    DfsGrid(TronGrid tronGrid, Player player) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y, null);
         init(tronGrid);
+        get(player.location).wall = false;
         populateDfs(player.location, 0);
     }
 
@@ -90,28 +76,26 @@ class DfsGrid extends AbstractGrid<DfsNode> {
         parent.depth = depth;
         parent.low = depth;
 
-        //printGrid();
-
         int childCount = 0;
         boolean isArticulation = false;
         for (DirectionEnum direction : DirectionEnum.values()) {
-            int childX = parentLocation.x + direction.x;
-            int childY = parentLocation.y + direction.y;
+            Location childLocation = parentLocation.move(direction);
 
-            if (isValidePosition(childX, childY)) {
-                if (isEmpty(childX, childY)) {
-                    DfsNode child = new DfsNode(parentLocation);
-                    set(childX, childY, child);
+            if (isValidePosition(childLocation)) {
+                DfsNode child = get(childLocation);
+                if (child == null) { //Child is Empty
+                    child = new DfsNode(parentLocation);
+                    set(childLocation, child);
                     childCount++;
 
-                    populateDfs(new Location(childX, childY), depth + 1);
+                    populateDfs(childLocation, depth + 1);
                     if (child.low >= parent.depth) {
                         isArticulation = true;
                     }
-                    parent.low = Math.min(child.low, parent.low);
+                    parent.low = Math.min(parent.low, child.low);
 
-                } else if (get(childX, childY).depth != -1 && !parentLocation.equals(get(childX, childY).parent)) {
-                    parent.low = Math.min(get(childX, childY).depth, parent.low);
+                } else if (!child.wall && (parent.parent == null || !child.equals(get(parent.parent)))) {
+                    parent.low = Math.min(parent.low, child.depth);
                 }
             }
         }
@@ -119,8 +103,6 @@ class DfsGrid extends AbstractGrid<DfsNode> {
         if ((parent.parent != null && isArticulation) || (parent.parent == null && childCount > 1)) {
             parent.articulation = true;
         }
-
-        printGrid();
     }
 
     @Override
@@ -130,20 +112,20 @@ class DfsGrid extends AbstractGrid<DfsNode> {
 }
 
 class ConnectionNode {
-    public Set<DirectionEnum> openedConnections = new HashSet<>();
-    public Set<DirectionEnum> closedConnections = new HashSet<>();
+    Set<DirectionEnum> openedConnections = new HashSet<>();
+    Set<DirectionEnum> closedConnections = new HashSet<>();
 
-    public ConnectionNode(boolean wall) {
+    ConnectionNode(boolean wall) {
         if (wall) {
             closedConnections.addAll(Arrays.asList(DirectionEnum.values()));
         }
     }
 
-    public boolean isWall() {
+    boolean isWall() {
         return closedConnections.size() == DirectionEnum.values().length;
     }
 
-    public boolean isProcessed() {
+    boolean isProcessed() {
         return closedConnections.size() + openedConnections.size() == DirectionEnum.values().length;
     }
 
@@ -156,7 +138,7 @@ class ConnectionNode {
 //https://fr.wikipedia.org/wiki/Algorithme_de_Kosaraju
 class ConnectionGrid extends AbstractGrid<ConnectionNode> {
 
-    public ConnectionGrid(TronGrid tronGrid, List<Player> players, int myId) {
+    ConnectionGrid(TronGrid tronGrid, List<Player> players) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y, null);
         init(tronGrid, players);
 
@@ -254,16 +236,18 @@ class ConnectionGrid extends AbstractGrid<ConnectionNode> {
 }
 
 class BiconnectedComponents {
-    // No. of vertices & Edges respectively
-    private int size;
+    // Number of vertices & Edges respectively
+    private final int size;
     // Adjacency List
-    private LinkedList[] adj;
+    private final List<LinkedList<Integer>> adj;
+    // Time is used to find discovery times
+    private int time = 0;
+    // Count is the number of biconnected components.
+    int count = 0;
 
-    // Count is number of biconnected components. time is
-    // used to find discovery times
-    static int count = 0, time = 0;
+    List<List<Edge>> biconnectedComponents = new ArrayList<>();
 
-    class Edge {
+    static class Edge {
         int u;
         int v;
 
@@ -271,41 +255,58 @@ class BiconnectedComponents {
             this.u = u;
             this.v = v;
         }
+
+        @Override
+        public String toString() {
+            return u + "--" + v;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Edge edge = (Edge) o;
+            return u == edge.u &&
+                    v == edge.v;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(u, v);
+        }
     }
 
-    //Constructor
-    BiconnectedComponents(int v) {
-        size = v;
-        adj = new LinkedList[v];
-        for (int i = 0; i < v; ++i)
-            adj[i] = new LinkedList();
+    BiconnectedComponents(int size) {
+        this.size = size;
+        this.adj = new ArrayList<>(size);
+        for (int i = 0; i < size; ++i){
+            adj.add(new LinkedList<>());
+        }
     }
 
     //Function to add an edge into the graph
     void addEdge(int v, int w) {
-        adj[v].add(w);
+        adj.get(v).add(w);
     }
 
-    // A recursive function that finds and prints strongly connected
-    // components using DFS traversal
-    // u --> The vertex to be visited next
-    // disc[] --> Stores discovery times of visited vertices
-    // low[] -- >> earliest visited vertex (the vertex with minimum
-    //             discovery time) that can be reached from subtree
-    //             rooted with current vertex
-    // *st -- >> To store visited edges
-    void BCCUtil(int u, int disc[], int low[], LinkedList<Edge> st, int parent[]) {
+    /**
+     * A recursive function that finds and prints strongly connected components using DFS traversal.
+     *
+     * @param u      The vertex to be visited next
+     * @param disc   Stores discovery times of visited vertices
+     * @param low    Earliest visited vertex (the vertex with minimum discovery time) that can be reached from subtree rooted with current vertex
+     * @param st     To store visited edges
+     * @param parent
+     */
+    private void biconnectedComponentsLoop(int u, int[] disc, int[] low, LinkedList<Edge> st, int[] parent) {
 
         // Initialize discovery time and low value
         disc[u] = low[u] = ++time;
         int children = 0;
 
         // Go through all vertices adjacent to this
-        Iterator<Integer> it = adj[u].iterator();
-        while (it.hasNext()) {
+        for (int v : adj.get(u)) {
             // v is current adjacent of 'u'
-            int v = it.next();
-
             // If v is not visited yet, then recur for it
             if (disc[v] == -1) {
                 children++;
@@ -313,27 +314,24 @@ class BiconnectedComponents {
 
                 // store the edge in stack
                 st.add(new Edge(u, v));
-                BCCUtil(v, disc, low, st, parent);
+                biconnectedComponentsLoop(v, disc, low, st, parent);
 
                 // Check if the subtree rooted with 'v' has a
                 // connection to one of the ancestors of 'u'
                 // Case 1 -- per Strongly Connected Components Article
-                if (low[u] > low[v])
+                if (low[u] > low[v]){
                     low[u] = low[v];
+                }
 
-                // If u is an articulation point,
-                // pop all edges from stack till u -- v
-                if ((disc[u] == 1 && children > 1) ||
-                        (disc[u] > 1 && low[v] >= disc[u])) {
+                // If u is an articulation point, pop all edges from stack till u -- v
+                if ((disc[u] == 1 && children > 1) || (disc[u] > 1 && low[v] >= disc[u])) {
+                    List<Edge> edgeList = new LinkedList<>();
                     while (st.getLast().u != u || st.getLast().v != v) {
-                        System.out.print(st.getLast().u + "--" +
-                                st.getLast().v + " ");
-                        st.removeLast();
+                        edgeList.add(st.removeLast());
                     }
-                    System.out.println(st.getLast().u + "--" +
-                            st.getLast().v + " ");
-                    st.removeLast();
+                    edgeList.add(st.removeLast());
 
+                    biconnectedComponents.add(edgeList);
                     count++;
                 }
             }
@@ -342,18 +340,22 @@ class BiconnectedComponents {
             // (i.e. it's a back edge, not cross edge).
             // Case 2 -- per Strongly Connected Components Article
             else if (v != parent[u] && disc[v] < low[u]) {
-                if (low[u] > disc[v])
+                if (low[u] > disc[v]){
                     low[u] = disc[v];
+                }
                 st.add(new Edge(u, v));
             }
         }
     }
 
-    // The function to do DFS traversal. It uses BCCUtil()
-    void BCC() {
-        int disc[] = new int[size];
-        int low[] = new int[size];
-        int parent[] = new int[size];
+    void findBiconnectedComponents() {
+        time = 0;
+        count = 0;
+        biconnectedComponents.clear();
+
+        int[] disc = new int[size];
+        int[] low = new int[size];
+        int[] parent = new int[size];
         LinkedList<Edge> st = new LinkedList<>();
 
         // Initialize disc and low, and parent arrays
@@ -364,55 +366,15 @@ class BiconnectedComponents {
         }
 
         for (int i = 0; i < size; i++) {
-            if (disc[i] == -1)
-                BCCUtil(i, disc, low, st, parent);
-
-            int j = 0;
-
-            // If stack is not empty, pop all edges from stack
-            while (st.size() > 0) {
-                j = 1;
-                System.out.print(st.getLast().u + "--" +
-                        st.getLast().v + " ");
-                st.removeLast();
+            if (disc[i] == -1) {
+                biconnectedComponentsLoop(i, disc, low, st, parent);
             }
-            if (j == 1) {
-                System.out.println();
+
+            if (!st.isEmpty()) {
+                biconnectedComponents.add(st);
+                st = new LinkedList<>();
                 count++;
             }
         }
-    }
-
-    public static void main(String args[]) {
-        BiconnectedComponents g = new BiconnectedComponents(12);
-        g.addEdge(0, 1);
-        g.addEdge(0, 3);
-        g.addEdge(1, 0);
-        g.addEdge(1, 2);
-        g.addEdge(1, 4);
-        g.addEdge(2, 1);
-        g.addEdge(2, 5);
-        g.addEdge(3, 0);
-        g.addEdge(3, 4);
-        g.addEdge(3, 6);
-        g.addEdge(4, 1);
-        g.addEdge(4, 3);
-        g.addEdge(4, 5);
-        g.addEdge(4, 7);
-        g.addEdge(5, 2);
-        g.addEdge(5, 4);
-        g.addEdge(5, 8);
-        g.addEdge(6, 3);
-        g.addEdge(6, 7);
-        g.addEdge(7, 6);
-        g.addEdge(7, 4);
-        g.addEdge(7, 8);
-        g.addEdge(8, 7);
-        g.addEdge(8, 5);
-
-        g.BCC();
-
-        System.out.println("Above are " + g.count +
-                " biconnected components in graph");
     }
 }
