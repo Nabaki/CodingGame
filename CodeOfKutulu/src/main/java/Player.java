@@ -1,5 +1,3 @@
-import javafx.util.Pair;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -329,11 +327,10 @@ class Explorer extends Entity {
 
         //Récupération des alliés qui feront bouclier
         Map<Monster, List<Explorer>> shieldsByWanderer = paths.entrySet().stream()
-                .map(e -> {
-                    List<Location> path = e.getValue();
-                    List<Explorer> shieds = allies.stream().filter(a -> path.contains(a.location)).collect(Collectors.toList());
-                    return new Pair<>(e.getKey(), shieds);
-                }).collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> allies.stream().filter(a -> e.getValue().contains(a.location)).collect(Collectors.toList())
+                ));
 
         System.err.println("shieldsByWanderer : " + shieldsByWanderer);
 
@@ -365,6 +362,11 @@ class Explorer extends Entity {
 }
 
 class DepthGrid extends AbstractGrid<Integer> {
+
+    //Pour les tests !
+    DepthGrid(int maxX, int maxY){
+        super(maxX, maxY);
+    }
 
     DepthGrid(int maxX, int maxY, Location startLocation) {
         super(maxX, maxY);
@@ -417,7 +419,7 @@ class DepthGrid extends AbstractGrid<Integer> {
 
     @Override
     public void printGrid() {
-        printGrid(".");
+        printGrid(".. ", n -> String.format("%02d ", n));
     }
 }
 
@@ -435,7 +437,7 @@ class KutuluGrid extends AbstractGrid<KutuluGrid.MotifEnum> implements Cloneable
 
     @Override
     public void printGrid() {
-        printGrid("");
+        printGrid("null" , n -> String.valueOf(n.motif));
     }
 
     @Override
@@ -499,14 +501,14 @@ abstract class AbstractGrid<T> {
         return x >= 0 && y >= 0 && x < MAX_X && y < MAX_Y;
     }
 
-    void printGrid(String nullString) {
+    protected void printGrid(String nullString, Function<T, String> printNodeFunction) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 T node = get(x, y);
                 if (node == null) {
                     System.err.print(nullString);
                 } else {
-                    System.err.print(node.toString());
+                    System.err.print(printNodeFunction.apply(node));
                 }
             }
             System.err.println();

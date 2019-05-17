@@ -2,7 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class TronGridBuilder {
+class TronGridBuilder {
 
     public static TronGrid fromFile(String fileName, int maxX, int maxY) {
         TronGrid tronGrid = new TronGrid(maxX, maxY);
