@@ -30,6 +30,7 @@
         <module>CodeOfKutulu</module>
         <module>LegendsOfCodeAndMagic</module>
         <module>XmasRush</module>
+        <module>ACodeOfIceAndFire</module>
     </modules>
 
     <dependencies>
