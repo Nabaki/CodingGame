@@ -263,7 +263,8 @@ class Explorer extends Entity {
                                 && Player.kutuluGrid.get(location) != KutuluGrid.MotifEnum.MUR
                 ).collect(Collectors.toList());
 
-        return this.depthGrid.bestTargets(safeLocations).get(0);
+        List<Location> bestTargets = this.depthGrid.bestTargets(safeLocations);
+        return bestTargets.isEmpty() ? null : bestTargets.get(0);
     }
 
     /**
@@ -364,7 +365,7 @@ class Explorer extends Entity {
 class DepthGrid extends AbstractGrid<Integer> {
 
     //Pour les tests !
-    DepthGrid(int maxX, int maxY){
+    DepthGrid(int maxX, int maxY) {
         super(maxX, maxY);
     }
 
@@ -405,12 +406,14 @@ class DepthGrid extends AbstractGrid<Integer> {
         for (Location target : targets) {
             Integer tmpDepth = get(target);
 
-            if (bestTargets.isEmpty() || tmpDepth < bestDepth) {
-                bestTargets.clear();
-                bestTargets.add(target);
-                bestDepth = tmpDepth;
-            } else if (tmpDepth.equals(bestDepth)) {
-                bestTargets.add(target);
+            if (tmpDepth != null) {
+                if (tmpDepth < bestDepth) {
+                    bestTargets.clear();
+                    bestTargets.add(target);
+                    bestDepth = tmpDepth;
+                } else if (tmpDepth == bestDepth) {
+                    bestTargets.add(target);
+                }
             }
         }
 
@@ -437,7 +440,7 @@ class KutuluGrid extends AbstractGrid<KutuluGrid.MotifEnum> implements Cloneable
 
     @Override
     public void printGrid() {
-        printGrid("null" , n -> String.valueOf(n.motif));
+        printGrid("null", n -> String.valueOf(n.motif));
     }
 
     @Override
