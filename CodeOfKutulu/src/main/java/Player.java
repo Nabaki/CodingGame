@@ -76,7 +76,7 @@ class Player {
 
             //Process
             Location moveTo = null;
-            if (explorers.isEmpty()) {
+            if (!explorers.isEmpty()) {
                 Explorer finalMe = me;
                 boolean friendsAreClose = explorers.stream().anyMatch(e -> e.isCloseTo(finalMe, 2));
                 if (friendsAreClose) {
@@ -84,7 +84,8 @@ class Player {
                     moveTo = me.runFromMonsters(monsters, explorers);
                 } else {
                     System.err.println("Look for friends");
-                    moveTo = me.goInFriendRange(explorers);
+                    List<Location> closerFriendLocations = me.closerFriendLocations(explorers);
+                    moveTo = closerFriendLocations.isEmpty() ? null : closerFriendLocations.get(0);
                 }
             }
             // Write an action using println
@@ -255,7 +256,7 @@ class Explorer extends Entity {
         this.param2 = param2;
     }
 
-    Location goInFriendRange(List<Explorer> explorers) {
+    List<Location> closerFriendLocations(List<Explorer> explorers) {
         List<Location> safeLocations = explorers.stream()
                 .flatMap(e -> e.getReallySafeLocations().stream())
                 .filter(location ->
@@ -263,8 +264,7 @@ class Explorer extends Entity {
                                 && Player.kutuluGrid.get(location) != KutuluGrid.MotifEnum.MUR
                 ).collect(Collectors.toList());
 
-        List<Location> bestTargets = this.depthGrid.bestTargets(safeLocations);
-        return bestTargets.isEmpty() ? null : bestTargets.get(0);
+        return this.depthGrid.bestTargets(safeLocations);
     }
 
     /**
