@@ -4,7 +4,7 @@ import scala.collection.immutable.IndexedSeq
   * Auto-generated code below aims at helping you parse
   * the standard input according to the problem statement.
   **/
-object Player extends App {
+object Init extends App {
 
   var cardList = Seq()
   var phase = Phase.DRAFT

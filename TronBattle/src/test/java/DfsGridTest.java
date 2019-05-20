@@ -1,4 +1,5 @@
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -30,6 +31,7 @@ public class DfsGridTest {
     }
 
     @Test
+    @Ignore(value = "Not used and work in progress")
     public void fromBlankGrid() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/emptyGrid/given.txt", 3, 3);
@@ -51,6 +53,7 @@ public class DfsGridTest {
     }
 
     @Test
+    @Ignore(value = "Not used and work in progress")
     public void fromSimpleCase() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/simpleCase/given.txt", 4, 3);
