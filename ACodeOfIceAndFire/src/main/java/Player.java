@@ -15,7 +15,7 @@ class Player {
         // game loop
         while (true) {
             g.update(in);
-            //g.debug();
+            g.debug();
             g.buildOutput();
             g.output();
         }
@@ -29,6 +29,7 @@ class Game {
     List<Command> output;
     int gold;
     int income;
+    BattleField battleField = new BattleField(12, 12);
 
     Game() {
         units = new ArrayList<>();
@@ -58,11 +59,12 @@ class Game {
         int opponentIncome = in.nextInt();
         for (int i = 0; i < 12; i++) {
             String line = in.next();
+            battleField.initLine(i, line);
             System.err.println(line);
         }
         int buildingCount = in.nextInt();
         for (int i = 0; i < buildingCount; i++) {
-            int owner = in.nextInt();
+            OwnerEnum owner = OwnerEnum.get(in.nextInt());
             int buildingType = in.nextInt();
             int x = in.nextInt();
             int y = in.nextInt();
@@ -70,7 +72,7 @@ class Game {
         }
         int unitCount = in.nextInt();
         for (int i = 0; i < unitCount; i++) {
-            int owner = in.nextInt();
+            OwnerEnum owner = OwnerEnum.get(in.nextInt());
             int unitId = in.nextInt();
             int level = in.nextInt();
             int x = in.nextInt();
@@ -97,14 +99,14 @@ class Game {
     private void moveUnits() {
         Position center = new Position(5, 5);
         units.stream()
-                .filter(Unit::isOwned)
+                .filter(u -> u.owner == OwnerEnum.ME)
                 .forEach(myUnit -> output.add(new Command(CommandType.MOVE, myUnit.id, center)));
     }
 
     // train near the HQ for now
     private Position findTrainingPosition() {
         Building HQ = getHQ();
-        if (HQ.p.x == 0) {
+        if (HQ.position.x == 0) {
             return new Position(0, 1);
         }
         return new Position(11, 10);
@@ -117,16 +119,17 @@ class Game {
     }
 
     public void debug() {
+        battleField.debug();
         units.forEach(Unit::debug);
         buildings.forEach(Building::debug);
     }
 
     private Building getHQ() {
-        return buildings.stream().filter(b -> b.isHQ() && b.isOwned()).findFirst().get();
+        return buildings.stream().filter(b -> b.type == BuildingTypeEnum.HQ && b.owner == OwnerEnum.ME).findFirst().get();
     }
 
     private Building getOpponentHQ() {
-        return buildings.stream().filter(b -> b.isHQ() && !b.isOwned()).findFirst().get();
+        return buildings.stream().filter(b -> b.type == BuildingTypeEnum.HQ && b.owner == OwnerEnum.ADV).findFirst().get();
     }
 }
 
@@ -149,70 +152,143 @@ class Command {
 
 class Unit {
 
-    Position p;
-    int level;
-    int owner;
     int id;
+    int level;
+    Position position;
+    OwnerEnum owner;
 
-    Unit(int x, int y, int id, int level, int owner) {
-        this.p = new Position(x, y);
+    Unit(int x, int y, int id, int level, OwnerEnum owner) {
+        this.position = new Position(x, y);
         this.id = id;
         this.level = level;
         this.owner = owner;
     }
 
     void debug() {
-        System.err.println("unit of level " + level + " at " + p.x + " " + p.y + " owned by " + owner);
-    }
-
-    boolean isOwned() {
-        return owner == 0;
+        System.err.println("Unit of level " + level + " at " + position.x + " " + position.y + " owned by " + owner);
     }
 }
 
 class Building {
 
-    Position p;
-    BuildingType t;
-    int owner;
+    Position position;
+    BuildingTypeEnum type;
+    OwnerEnum owner;
 
-    Building(int x, int y, int t, int owner) {
-        this.p = new Position(x, y);
-        this.t = BuildingType.get(t);
+    Building(int x, int y, int type, OwnerEnum owner) {
+        this.position = new Position(x, y);
+        this.type = BuildingTypeEnum.get(type);
         this.owner = owner;
     }
 
     void debug() {
-        System.err.println(t + " at " + p.x + " " + p.y + " owned by " + owner);
+        System.err.println(type + " at " + position.x + " " + position.y + " owned by " + owner);
     }
-
-    boolean isHQ() {
-        return t.equals(BuildingType.HQ);
-    }
-
-    boolean isOwned() {
-        return owner == 0;
-    }
-
 }
 
-enum BuildingType {
+enum BuildingTypeEnum {
 
-    HQ;
+    HQ(0);
 
-    static public BuildingType get(int type) {
-        switch (type) {
+    int value;
+
+    BuildingTypeEnum(int value) {
+        this.value = value;
+    }
+
+    public static BuildingTypeEnum get(int value) {
+        switch (value) {
             case 0:
                 return HQ;
+            default:
+                throw new IllegalArgumentException(value + " not expected.");
         }
-        return null;
     }
 }
 
 enum CommandType {
-
     MOVE,
     TRAIN
+}
+
+
+class BattleField extends AbstractGrid<FieldEnum> {
+
+    protected BattleField(int maxX, int maxY) {
+        super(maxX, maxY);
+    }
+
+    void initLine(int y, String line) {
+        for (int x = 0; x < MAX_X; x++) {
+            set(x, y, FieldEnum.getFromMotif(line.charAt(x)));
+        }
+    }
+
+    @Override
+    public void debug() {
+        debug(fieldEnum -> String.valueOf(fieldEnum.motif));
+    }
+}
+
+enum FieldEnum {
+    NEANT('#'),
+    NEUTRE('.'),
+    CAPTUREE('O'),
+    INACTIF('o'),
+    ADV_CATUREE('X'),
+    ADV_INACTIF('x');
+
+    char motif;
+
+    FieldEnum(char motif) {
+        this.motif = motif;
+    }
+
+    public static FieldEnum getFromMotif(char motif) {
+        switch (motif) {
+            case '#':
+                return NEANT;
+            case '.':
+                return NEUTRE;
+            case 'O':
+                return CAPTUREE;
+            case 'o':
+                return INACTIF;
+            case 'X':
+                return ADV_CATUREE;
+            case 'x':
+                return ADV_INACTIF;
+            default:
+                throw new IllegalArgumentException(motif + " not expected.");
+        }
+    }
+}
+
+enum OwnerEnum {
+    ME(0),
+    ADV(1);
+
+    int value;
+
+    OwnerEnum(int value) {
+        this.value = value;
+    }
+
+    public static OwnerEnum get(int value) {
+        switch (value) {
+            case 0:
+                return ME;
+            case 1:
+                return ADV;
+            default:
+                throw new IllegalArgumentException(value + " not expected.");
+        }
+    }
+
+    @Override
+    public String toString() {
+        return name();
+    }
 }
 
 /*
@@ -284,22 +360,18 @@ enum DirectionEnum {
     }
 
     public DirectionEnum opposite() {
-        DirectionEnum res = null;
         switch (this) {
             case RIGHT:
-                res = LEFT;
-                break;
+                return LEFT;
             case UP:
-                res = DOWN;
-                break;
+                return DOWN;
             case LEFT:
-                res = RIGHT;
-                break;
+                return RIGHT;
             case DOWN:
-                res = UP;
-                break;
+                return UP;
+            default:
+                throw new IllegalStateException("Can't be anything else ?! " + this);
         }
-        return res;
     }
 }
 
@@ -331,15 +403,12 @@ abstract class AbstractGrid<T> {
         return x >= 0 && y >= 0 && x < MAX_X && y < MAX_Y;
     }
 
-    protected void printGrid(String nullString, Function<T, String> printNodeFunction) {
+    protected void debug(Function<T, String> printNodeFunction) {
+        System.err.println(this.getClass().getSimpleName());
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 T node = get(x, y);
-                if (node == null) {
-                    System.err.print(nullString);
-                } else {
-                    System.err.print(printNodeFunction.apply(node));
-                }
+                System.err.println(printNodeFunction.apply(node));
             }
             System.err.println();
         }
@@ -362,7 +431,7 @@ abstract class AbstractGrid<T> {
         set(position.x, position.y, value);
     }
 
-    public abstract void printGrid();
+    public abstract void debug();
 
     @Override
     public boolean equals(Object o) {
