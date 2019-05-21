@@ -1,3 +1,5 @@
+import java.util.*;
+
 /**
  * Auto-generated code below aims at helping you parse
  * the standard input according to the problem statement.
@@ -20,7 +22,7 @@ class Player {
         }
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         Scanner in = new Scanner(System.in);
         int N = in.nextInt(); // the total number of nodes in the level, including the gateways
         int L = in.nextInt(); // the number of links
