@@ -35,12 +35,12 @@ public class DfsGridTest {
     public void fromBlankGrid() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/emptyGrid/given.txt", 3, 3);
-        MotoCycle motoCycle = new MotoCycle(0);
-        motoCycle.position = new Position(0, 0);
-        tronGrid.set(motoCycle.position.x, motoCycle.position.y, motoCycle.id);
+        Motocycle motocycle = new Motocycle(0);
+        motocycle.position = new Position(0, 0);
+        tronGrid.set(motocycle.position.x, motocycle.position.y, motocycle.id);
 
         //When
-        DfsGrid result = new DfsGrid(tronGrid, motoCycle);
+        DfsGrid result = new DfsGrid(tronGrid, motocycle);
         System.err.println("Result grid");
         result.debug();
 
@@ -57,12 +57,12 @@ public class DfsGridTest {
     public void fromSimpleCase() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/simpleCase/given.txt", 4, 3);
-        MotoCycle motoCycle = new MotoCycle(0);
-        motoCycle.position = new Position(0, 1);
-        tronGrid.set(motoCycle.position.x, motoCycle.position.y, motoCycle.id);
+        Motocycle motocycle = new Motocycle(0);
+        motocycle.position = new Position(0, 1);
+        tronGrid.set(motocycle.position.x, motocycle.position.y, motocycle.id);
 
         //When
-        DfsGrid result = new DfsGrid(tronGrid, motoCycle);
+        DfsGrid result = new DfsGrid(tronGrid, motocycle);
         System.err.println("Result grid");
         result.debug();
 

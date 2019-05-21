@@ -49,11 +49,11 @@ class DfsGrid extends AbstractGrid<DfsNode> {
         super(maxX, maxY);
     }
 
-    DfsGrid(TronGrid tronGrid, MotoCycle motoCycle) {
+    DfsGrid(TronGrid tronGrid, Motocycle motocycle) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
         init(tronGrid);
-        get(motoCycle.position).wall = false;
-        populateDfs(motoCycle.position, 0);
+        get(motocycle.position).wall = false;
+        populateDfs(motocycle.position, 0);
     }
 
     private void init(TronGrid tronGrid) {
@@ -138,20 +138,20 @@ class ConnectionNode {
 //https://fr.wikipedia.org/wiki/Algorithme_de_Kosaraju
 class ConnectionGrid extends AbstractGrid<ConnectionNode> {
 
-    ConnectionGrid(TronGrid tronGrid, List<MotoCycle> motoCycles) {
+    ConnectionGrid(TronGrid tronGrid, List<Motocycle> motocycles) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
-        init(tronGrid, motoCycles);
+        init(tronGrid, motocycles);
 
         // Compute all connections
         //computeConnections1();
 
         //computes connections only from my Position
-        computeConnections2(initComputeConnections2(motoCycles));
+        computeConnections2(initComputeConnections2(motocycles));
     }
 
-    private void init(TronGrid tronGrid, List<MotoCycle> motoCycles) {
-        motoCycles.stream().filter(motoCycle -> !motoCycle.isDead).forEach(motoCycle ->
-                set(motoCycle.position.x, motoCycle.position.y, new ConnectionNode(true))
+    private void init(TronGrid tronGrid, List<Motocycle> motocycles) {
+        motocycles.stream().filter(motocycle -> !motocycle.isDead).forEach(motocycle ->
+                set(motocycle.position.x, motocycle.position.y, new ConnectionNode(true))
         );
 
         for (int y = 0; y < MAX_Y; y++) {
@@ -181,11 +181,11 @@ class ConnectionGrid extends AbstractGrid<ConnectionNode> {
         }
     }
 
-    private Set<Position> initComputeConnections2(List<MotoCycle> motoCycles) {
+    private Set<Position> initComputeConnections2(List<Motocycle> motocycles) {
         Set<Position> res = new HashSet<>();
-        for (MotoCycle motoCycle : motoCycles) {
+        for (Motocycle motocycle : motocycles) {
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Position tmpPosition = new Position(motoCycle.position.x + directionEnum.x, motoCycle.position.y + directionEnum.y);
+                Position tmpPosition = new Position(motocycle.position.x + directionEnum.x, motocycle.position.y + directionEnum.y);
                 if (isValidePosition(tmpPosition) && !get(tmpPosition).isWall()) {
                     res.add(tmpPosition);
                 }

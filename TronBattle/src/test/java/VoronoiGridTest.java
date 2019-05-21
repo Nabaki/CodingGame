@@ -43,13 +43,13 @@ public class VoronoiGridTest {
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/alone/given.txt", 6, 3);
         tronGrid.debug();
 
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(0, 0);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(0, 0);
 
         //When
-        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motoCycle0));
+        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motocycle0));
         resultGrid.debug();
-        int resultPoints = resultGrid.countPoints(motoCycle0.id);
+        int resultPoints = resultGrid.countPoints(motocycle0.id);
 
         //Then
         VoronoiGrid expected = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/alone/expected.txt", 6, 3);
@@ -58,23 +58,23 @@ public class VoronoiGridTest {
     }
 
     @Test
-    public void opposed2MotoCyclesTest() {
+    public void opposed2MotocyclesTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/opposed2/given.txt", 5, 3);
         tronGrid.debug();
 
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(0, 0);
-        MotoCycle motoCycle1 = new MotoCycle(1);
-        motoCycle1.position = new Position(4, 2);
-        List<MotoCycle> motoCycles = Arrays.asList(motoCycle0, motoCycle1);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(0, 0);
+        Motocycle motocycle1 = new Motocycle(1);
+        motocycle1.position = new Position(4, 2);
+        List<Motocycle> motocycles = Arrays.asList(motocycle0, motocycle1);
 
-        //MotoCycle 0 begin
+        //Motocycle 0 begin
         //When
-        VoronoiGrid resP0beginGrid = new VoronoiGrid(tronGrid, 0, motoCycles);
+        VoronoiGrid resP0beginGrid = new VoronoiGrid(tronGrid, 0, motocycles);
         resP0beginGrid.debug();
-        int resP0beginPoints0 = resP0beginGrid.countPoints(motoCycle0.id);
-        int resP0beginPoints1 = resP0beginGrid.countPoints(motoCycle1.id);
+        int resP0beginPoints0 = resP0beginGrid.countPoints(motocycle0.id);
+        int resP0beginPoints1 = resP0beginGrid.countPoints(motocycle1.id);
 
         //Then
         VoronoiGrid expectedP0begin = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/opposed2/p0begin.txt", 5, 3);
@@ -82,12 +82,12 @@ public class VoronoiGridTest {
         Assert.assertEquals(5, resP0beginPoints0);
         Assert.assertEquals(8, resP0beginPoints1);
 
-        //MotoCycle 1 begin
+        //Motocycle 1 begin
         //When
-        VoronoiGrid resP1beginGrid = new VoronoiGrid(tronGrid, 1, motoCycles);
+        VoronoiGrid resP1beginGrid = new VoronoiGrid(tronGrid, 1, motocycles);
         resP1beginGrid.debug();
-        int resP1beginPoints0 = resP1beginGrid.countPoints(motoCycle0.id);
-        int resP1beginPoints1 = resP1beginGrid.countPoints(motoCycle1.id);
+        int resP1beginPoints0 = resP1beginGrid.countPoints(motocycle0.id);
+        int resP1beginPoints1 = resP1beginGrid.countPoints(motocycle1.id);
 
         //Then
         VoronoiGrid expectedP1begin = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/opposed2/p1begin.txt", 5, 3);
@@ -102,16 +102,16 @@ public class VoronoiGridTest {
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/empty2030Grid/given.txt", 20, 30);
         tronGrid.debug();
 
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(0, 0);
-        MotoCycle motoCycle1 = new MotoCycle(1);
-        motoCycle1.position = new Position(19, 29);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(0, 0);
+        Motocycle motocycle1 = new Motocycle(1);
+        motocycle1.position = new Position(19, 29);
 
         //When
-        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Arrays.asList(motoCycle0, motoCycle1));
+        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Arrays.asList(motocycle0, motocycle1));
         resultGrid.debug();
-        int resultPoints0 = resultGrid.countPoints(motoCycle0.id);
-        int resultPoints1 = resultGrid.countPoints(motoCycle1.id);
+        int resultPoints0 = resultGrid.countPoints(motocycle0.id);
+        int resultPoints1 = resultGrid.countPoints(motocycle1.id);
 
         //Then
         VoronoiGrid expected = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/empty2030Grid/expected.txt", 20, 30);
@@ -126,11 +126,11 @@ public class VoronoiGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/choice/given.txt", 6, 3);
         tronGrid.debug();
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(4, 1);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(4, 1);
 
         //When
-        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motoCycle0));
+        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motocycle0));
         int resultPoints = resultGrid.countPoints(0);
         resultGrid.debug();
 
@@ -147,11 +147,11 @@ public class VoronoiGridTest {
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/revertChoice/given.txt", 3, 6);
         tronGrid.debug();
 
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(1, 4);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(1, 4);
 
         //When
-        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motoCycle0));
+        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motocycle0));
         int resultPoints = resultGrid.countPoints(0);
         resultGrid.debug();
 
@@ -167,11 +167,11 @@ public class VoronoiGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/clashPoints/given.txt", 7, 6);
         tronGrid.debug();
-        MotoCycle motoCycle0 = new MotoCycle(0);
-        motoCycle0.position = new Position(1, 3);
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(1, 3);
 
         //When
-        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motoCycle0));
+        VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(motocycle0));
         int resultPoints = resultGrid.countPoints(0);
         resultGrid.debug();
 
