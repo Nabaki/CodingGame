@@ -10,15 +10,15 @@ public class ConnectionGridTest {
         //GIVEN
         TronGrid tronGrid = new TronGrid(30, 20);
 
-        Player player = new Player(0);
-        player.position = new Position(0, 0);
-        tronGrid.set(player.position.x, player.position.y, player.id);
+        MotoCycle motoCycle = new MotoCycle(0);
+        motoCycle.position = new Position(0, 0);
+        tronGrid.set(motoCycle.position.x, motoCycle.position.y, motoCycle.id);
 
-        List<Player> players = new ArrayList<>();
-        players.add(player);
+        List<MotoCycle> motoCycles = new ArrayList<>();
+        motoCycles.add(motoCycle);
 
         //WHEN
-        ConnectionGrid connectionGrid = new ConnectionGrid(tronGrid, players);
+        ConnectionGrid connectionGrid = new ConnectionGrid(tronGrid, motoCycles);
 
         //THEN
         connectionGrid.debug();

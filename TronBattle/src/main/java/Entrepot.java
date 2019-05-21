@@ -49,11 +49,11 @@ class DfsGrid extends AbstractGrid<DfsNode> {
         super(maxX, maxY);
     }
 
-    DfsGrid(TronGrid tronGrid, Player player) {
+    DfsGrid(TronGrid tronGrid, MotoCycle motoCycle) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
         init(tronGrid);
-        get(player.position).wall = false;
-        populateDfs(player.position, 0);
+        get(motoCycle.position).wall = false;
+        populateDfs(motoCycle.position, 0);
     }
 
     private void init(TronGrid tronGrid) {
@@ -138,20 +138,20 @@ class ConnectionNode {
 //https://fr.wikipedia.org/wiki/Algorithme_de_Kosaraju
 class ConnectionGrid extends AbstractGrid<ConnectionNode> {
 
-    ConnectionGrid(TronGrid tronGrid, List<Player> players) {
+    ConnectionGrid(TronGrid tronGrid, List<MotoCycle> motoCycles) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
-        init(tronGrid, players);
+        init(tronGrid, motoCycles);
 
         // Compute all connections
         //computeConnections1();
 
         //computes connections only from my Position
-        computeConnections2(initComputeConnections2(players));
+        computeConnections2(initComputeConnections2(motoCycles));
     }
 
-    private void init(TronGrid tronGrid, List<Player> players) {
-        players.stream().filter(player -> !player.isDead).forEach(player ->
-                set(player.position.x, player.position.y, new ConnectionNode(true))
+    private void init(TronGrid tronGrid, List<MotoCycle> motoCycles) {
+        motoCycles.stream().filter(motoCycle -> !motoCycle.isDead).forEach(motoCycle ->
+                set(motoCycle.position.x, motoCycle.position.y, new ConnectionNode(true))
         );
 
         for (int y = 0; y < MAX_Y; y++) {
@@ -181,11 +181,11 @@ class ConnectionGrid extends AbstractGrid<ConnectionNode> {
         }
     }
 
-    private Set<Position> initComputeConnections2(List<Player> players) {
+    private Set<Position> initComputeConnections2(List<MotoCycle> motoCycles) {
         Set<Position> res = new HashSet<>();
-        for (Player player : players) {
+        for (MotoCycle motoCycle : motoCycles) {
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Position tmpPosition = new Position(player.position.x + directionEnum.x, player.position.y + directionEnum.y);
+                Position tmpPosition = new Position(motoCycle.position.x + directionEnum.x, motoCycle.position.y + directionEnum.y);
                 if (isValidePosition(tmpPosition) && !get(tmpPosition).isWall()) {
                     res.add(tmpPosition);
                 }

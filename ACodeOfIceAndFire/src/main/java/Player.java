@@ -24,18 +24,12 @@ class Player {
 
 class Game {
 
-    List<Unit> units;
-    List<Building> buildings;
-    List<Command> output;
     int gold;
     int income;
+    List<Unit> units = new ArrayList<>();
+    List<Building> buildings = new ArrayList<>();
+    List<Command> output = new ArrayList<>();
     BattleField battleField = new BattleField(12, 12);
-
-    Game() {
-        units = new ArrayList<>();
-        buildings = new ArrayList<>();
-        output = new ArrayList<>();
-    }
 
     // not useful in Wood 3
     void init(Scanner in) {

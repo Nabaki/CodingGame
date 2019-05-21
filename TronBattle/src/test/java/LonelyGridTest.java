@@ -7,16 +7,16 @@ import java.util.Collections;
 public class LonelyGridTest {
 
     @Test
-    public void alonePlayerTest() {
+    public void aloneMotoCycleTest() {
         //Given
-        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/alonePlayer.txt", 3, 3);
+        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/alone.txt", 3, 3);
         tronGrid.debug();
-        Player player = new Player(0);
-        player.position = new Position(0, 0);
+        MotoCycle motoCycle = new MotoCycle(0);
+        motoCycle.position = new Position(0, 0);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
-        boolean isAlone = result.isAlone(0, Collections.singletonList(player));
+        boolean isAlone = result.isAlone(0, Collections.singletonList(motoCycle));
         result.debug();
 
         //Then
@@ -24,19 +24,19 @@ public class LonelyGridTest {
     }
 
     @Test
-    public void notAlonePlayerTest() {
+    public void notAloneMotoCycleTest() {
         //Given
-        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/notAlonePlayer.txt", 3, 3);
+        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/notAlone.txt", 3, 3);
         tronGrid.debug();
 
-        Player player0 = new Player(0);
-        player0.position = new Position(0, 0);
-        Player player1 = new Player(1);
-        player1.position = new Position(2, 2);
+        MotoCycle motoCycle0 = new MotoCycle(0);
+        motoCycle0.position = new Position(0, 0);
+        MotoCycle motoCycle1 = new MotoCycle(1);
+        motoCycle1.position = new Position(2, 2);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
-        boolean isAlone = result.isAlone(0, Arrays.asList(player0, player1));
+        boolean isAlone = result.isAlone(0, Arrays.asList(motoCycle0, motoCycle1));
         result.debug();
 
         //Then
@@ -44,19 +44,19 @@ public class LonelyGridTest {
     }
 
     @Test
-    public void trappedPlayerTest() {
+    public void trappedMotoCycleTest() {
         //Given
-        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/trappedPlayer.txt", 3, 3);
+        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/lonelyGrid/trapped.txt", 3, 3);
         tronGrid.debug();
-        Player player0 = new Player(0);
-        player0.position = new Position(0, 0);
-        Player player1 = new Player(1);
-        player1.position = new Position(2, 2);
+        MotoCycle motoCycle0 = new MotoCycle(0);
+        motoCycle0.position = new Position(0, 0);
+        MotoCycle motoCycle1 = new MotoCycle(1);
+        motoCycle1.position = new Position(2, 2);
 
         //When
         LonelyGrid result = new LonelyGrid(tronGrid);
         result.debug();
-        boolean isAlone = result.isAlone(0, Arrays.asList(player0, player1));
+        boolean isAlone = result.isAlone(0, Arrays.asList(motoCycle0, motoCycle1));
         result.debug();
 
         //Then

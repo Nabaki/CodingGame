@@ -1,5 +1,3 @@
-
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -7,17 +5,90 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class Player implements Cloneable {
+class Player {
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        Game game = new Game();
+
+        // game loop
+        while (true) {
+
+            game.update(in);
+
+            Instant start = Instant.now();
+            DirectionEnum finalMove = game.buildOutput();
+
+            //Timeout
+            //First turn 1000ms
+            //Other turns 100ms
+            System.err.println("Time used : " + Duration.between(start, Instant.now()).toMillis() + "ms");
+
+            System.out.println(finalMove.name()); // A single line with UP, DOWN, LEFT or RIGHT
+        }
+    }
+}
+
+class Game {
+
+    int myId; // your motoCycle number (0 to 3).
+    int nbMotoCycles; // total number of motoCycles (2 to 4).
+    boolean isInit = false;
+    TronGrid tronGrid = new TronGrid(30, 20);
+    List<MotoCycle> motoCycles = null;
+
+    void update(Scanner in) {
+        nbMotoCycles = in.nextInt();
+        myId = in.nextInt();
+
+        if (!isInit) {
+            motoCycles = new ArrayList<>(nbMotoCycles);
+            for (int i = 0; i < nbMotoCycles; i++) {
+                motoCycles.add(new MotoCycle(i));
+            }
+            isInit = true;
+        }
+
+        for (int i = 0; i < nbMotoCycles; i++) {
+            int X0 = in.nextInt(); // starting X coordinate of lightcycle (or -1)
+            int Y0 = in.nextInt(); // starting Y coordinate of lightcycle (or -1)
+            int X1 = in.nextInt(); // starting X coordinate of lightcycle (can be the same as X0 if you play before this motoCycle)
+            int Y1 = in.nextInt(); // starting Y coordinate of lightcycle (can be the same as Y0 if you play before this motoCycle)
+
+            MotoCycle motoCycle = motoCycles.get(i);
+
+            //Si un des joueurs est mort
+            if (X0 == -1) {
+                //Si c'est la première fois on le supprime de la grille
+                if (!motoCycle.isDead) {
+                    tronGrid.resetGridForMotoCycleId(i);
+                    motoCycle.isDead = true;
+                }
+            } else {
+                tronGrid.set(X0, Y0, i);
+                tronGrid.set(X1, Y1, i);
+                motoCycle.position = new Position(X1, Y1);
+            }
+        }
+    }
+
+    public DirectionEnum buildOutput() {
+        MotoCycle myMotoCycle = motoCycles.get(myId);
+        return myMotoCycle.bestMove(tronGrid, motoCycles);
+    }
+}
+
+class MotoCycle implements Cloneable {
 
     final int id;
     Position position;
     boolean isDead = false;
 
-    Player(int id) {
+    MotoCycle(int id) {
         this.id = id;
     }
 
-    private Player move(DirectionEnum directionEnum) {
+    private MotoCycle move(DirectionEnum directionEnum) {
         position.x += directionEnum.x;
         position.y += directionEnum.y;
         return this;
@@ -50,8 +121,8 @@ class Player implements Cloneable {
     /**
      * Choix de la meilleur direction à prendre en fonction de si l'on est en mode "survie seul" ou "guerre de territoire"
      */
-    private DirectionEnum bestMove(TronGrid tronGrid, List<Player> players) {
-        boolean isAlone = new LonelyGrid(tronGrid).isAlone(id, players);
+    public DirectionEnum bestMove(TronGrid tronGrid, List<MotoCycle> motoCycles) {
+        boolean isAlone = new LonelyGrid(tronGrid).isAlone(id, motoCycles);
         System.err.println("isAlone : " + isAlone);
 
         //Liste des directions possibles
@@ -69,7 +140,7 @@ class Player implements Cloneable {
             // Algorithme de guerre de territoire (Voronoi)
             TreeMap<Integer, List<DirectionEnum>> collect = directions.stream()
                     .collect(Collectors.groupingBy(
-                            d -> useVoronoiInThisDirection(tronGrid, players, id, d),
+                            d -> useVoronoiInThisDirection(tronGrid, motoCycles, id, d),
                             TreeMap::new,
                             Collectors.toList()
                     ));
@@ -150,85 +221,27 @@ class Player implements Cloneable {
         return tmpScore;
     }
 
-    public static void main(String[] args) {
-        //InitDatas
-        TronGrid tronGrid = new TronGrid(30, 20);
-        List<Player> players = null;
-        boolean isInit = false;
-
-        Scanner in = new Scanner(System.in);
-
-        // game loop
-        while (true) {
-
-            int nbPlayers = in.nextInt(); // total number of players (2 to 4).
-            int myId = in.nextInt(); // your player number (0 to 3).
-
-            if (!isInit) {
-                players = new ArrayList<>(nbPlayers);
-                for (int i = 0; i < nbPlayers; i++) {
-                    players.add(new Player(i));
-                }
-                isInit = true;
-            }
-
-            for (int i = 0; i < nbPlayers; i++) {
-                int X0 = in.nextInt(); // starting X coordinate of lightcycle (or -1)
-                int Y0 = in.nextInt(); // starting Y coordinate of lightcycle (or -1)
-                int X1 = in.nextInt(); // starting X coordinate of lightcycle (can be the same as X0 if you play before this player)
-                int Y1 = in.nextInt(); // starting Y coordinate of lightcycle (can be the same as Y0 if you play before this player)
-
-                Player player = players.get(i);
-
-                //Si un des joueurs est mort
-                if (X0 == -1) {
-                    //Si c'est la première fois on le supprime de la grille
-                    if (!player.isDead) {
-                        tronGrid.resetGridForPlayerId(i);
-                        player.isDead = true;
-                    }
-                } else {
-                    tronGrid.set(X0, Y0, i);
-                    tronGrid.set(X1, Y1, i);
-                    player.position = new Position(X1, Y1);
-                }
-            }
-
-            Instant start = Instant.now();
-
-            Player myPlayer = players.get(myId);
-            DirectionEnum finalMove = myPlayer.bestMove(tronGrid, players);
-
-            //Timeout
-            //First turn 1000ms
-            //Other turns 100ms
-            System.err.println("Time used : " + Duration.between(start, Instant.now()).toMillis() + "ms");
-
-            System.out.println(finalMove); // A single line with UP, DOWN, LEFT or RIGHT
-        }
-    }
-
-    int useVoronoiInThisDirection(TronGrid tronGrid, List<Player> players, int myId, DirectionEnum direction) {
+    int useVoronoiInThisDirection(TronGrid tronGrid, List<MotoCycle> motoCycles, int myId, DirectionEnum direction) {
         //La liste des joueurs et de leur position est mise à jour.
-        List<Player> newPlayers = new ArrayList<>(players);
-        newPlayers.set(myId, clone().move(direction));
+        List<MotoCycle> newMotoCycles = new ArrayList<>(motoCycles);
+        newMotoCycles.set(myId, clone().move(direction));
 
-        int voronoiScore = new VoronoiGrid(tronGrid, myId, newPlayers).countPoints(myId);
+        int voronoiScore = new VoronoiGrid(tronGrid, myId, newMotoCycles).countPoints(myId);
         System.err.println("Voronoi " + direction.name() + " -> " + voronoiScore);
         return voronoiScore;
     }
 
     @Override
-    public Player clone() {
-        Player player = new Player(id);
-        player.position = new Position(position);
-        player.isDead = this.isDead;
-        return player;
+    public MotoCycle clone() {
+        MotoCycle motoCycle = new MotoCycle(id);
+        motoCycle.position = new Position(position);
+        motoCycle.isDead = this.isDead;
+        return motoCycle;
     }
 
     @Override
     public String toString() {
-        return "Player{" + position +
+        return "MotoCycle{" + position +
                 ", isDead=" + isDead +
                 ", id=" + id +
                 '}';
@@ -246,10 +259,10 @@ class TronGrid extends AbstractGrid<Integer> implements Cloneable {
         debug(n -> n == null ? "-" : String.valueOf(n));
     }
 
-    void resetGridForPlayerId(int idPlayer) {
+    void resetGridForMotoCycleId(int idMotoCycle) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (get(x, y) == idPlayer) {
+                if (get(x, y) == idMotoCycle) {
                     set(x, y, null);
                 }
             }
@@ -280,13 +293,13 @@ class LonelyGrid extends AbstractGrid<Boolean> {
         }
     }
 
-    boolean isAlone(int id, List<Player> players) {
-        List<Position> ennemisPosition = players.stream()
-                .filter(player -> player.id != id)
-                .map(player -> player.position)
+    boolean isAlone(int id, List<MotoCycle> motoCycles) {
+        List<Position> ennemisPosition = motoCycles.stream()
+                .filter(motoCycle -> motoCycle.id != id)
+                .map(motoCycle -> motoCycle.position)
                 .collect(Collectors.toList());
 
-        Position myPosition = players.get(id).position;
+        Position myPosition = motoCycles.get(id).position;
         set(myPosition, false);
         return isAloneLoop(ennemisPosition, Collections.singletonList(myPosition));
     }
@@ -335,7 +348,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * Chaque récursion simule un tour de jeu.
      * A la fin la carte est séparée entre les murs (WALL), les zones atteintes en premier par tel ou tel joueur (0,1,2,3) ou des zones qui ne peuvent être atteintes (null)
      */
-    VoronoiGrid(TronGrid tronGrid, int lastPlayerToMove, List<Player> players) {
+    VoronoiGrid(TronGrid tronGrid, int lastMotoCycleToMove, List<MotoCycle> motoCycles) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
 
         //Init walls. If tronGrid is not empty then mark the position as 8 (wall)
@@ -347,9 +360,9 @@ class VoronoiGrid extends AbstractGrid<Integer> {
             }
         }
 
-        //Init players position.
-        Map<Player, List<Position>> positionsByPlayer = new HashMap<>(players.size());
-        players.forEach(p -> {
+        //Init motoCycles position.
+        Map<MotoCycle, List<Position>> positionsByMotoCycle = new HashMap<>(motoCycles.size());
+        motoCycles.forEach(p -> {
             List<Position> positions;
             if (!p.isDead) {
                 set(p.position, WALL);
@@ -357,14 +370,14 @@ class VoronoiGrid extends AbstractGrid<Integer> {
             } else {
                 positions = Collections.emptyList();
             }
-            positionsByPlayer.put(p, positions);
+            positionsByMotoCycle.put(p, positions);
         });
 
-        int idPlayerTurn = lastPlayerToMove;
-        while (!positionsByPlayer.values().stream().allMatch(List::isEmpty)) {
-            idPlayerTurn = (idPlayerTurn + 1) % players.size();
-            Player playerTurn = players.get(idPlayerTurn);
-            positionsByPlayer.put(playerTurn, voronoiLoop(playerTurn, positionsByPlayer.get(playerTurn)));
+        int idMotoCycleTurn = lastMotoCycleToMove;
+        while (!positionsByMotoCycle.values().stream().allMatch(List::isEmpty)) {
+            idMotoCycleTurn = (idMotoCycleTurn + 1) % motoCycles.size();
+            MotoCycle motoCycleTurn = motoCycles.get(idMotoCycleTurn);
+            positionsByMotoCycle.put(motoCycleTurn, voronoiLoop(motoCycleTurn, positionsByMotoCycle.get(motoCycleTurn)));
         }
 
         //debug();
@@ -373,15 +386,15 @@ class VoronoiGrid extends AbstractGrid<Integer> {
     /**
      * Fait avancer le jeu d'un tick pour le joueur en question
      *
-     * @param player    le joueur pour lequel c'est le tour
+     * @param motoCycle le joueur pour lequel c'est le tour
      * @param positions les emplacements où le joueur pourrait être à ce tour
      * @return les futurs emplacements où le joueur pourra être à son prochain tour ce joueurs
      */
-    private List<Position> voronoiLoop(Player player, List<Position> positions) {
+    private List<Position> voronoiLoop(MotoCycle motoCycle, List<Position> positions) {
         return positions.stream()
                 .flatMap(l -> Arrays.stream(DirectionEnum.values()).map(l::move))
                 .filter(l -> isValidePosition(l) && get(l) == null)
-                .peek(l -> set(l, player.id))
+                .peek(l -> set(l, motoCycle.id))
                 .collect(Collectors.toList());
     }
 
@@ -390,7 +403,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
     }
 
     //Connected-component_labeling
-    int countPoints(int targetPlayerId) {
+    int countPoints(int targetMotoCycleId) {
         VoronoiGrid regionGrid = new VoronoiGrid(MAX_X, MAX_Y);
         List<List<Integer>> links = new ArrayList<>(10);
         int regionCounter = 0;
@@ -398,7 +411,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
         //First pass
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (get(x, y) == targetPlayerId) {
+                if (get(x, y) == targetMotoCycleId) {
                     Position upPosition = new Position(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
                     Position leftPosition = new Position(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
                     Integer upRegionValue = null;
@@ -407,12 +420,12 @@ class VoronoiGrid extends AbstractGrid<Integer> {
                     boolean leftInRange = false;
 
                     if (isValidePosition(upPosition)) {
-                        upInRange = get(upPosition) == targetPlayerId;
+                        upInRange = get(upPosition) == targetMotoCycleId;
                         upRegionValue = regionGrid.get(upPosition);
                     }
 
                     if (isValidePosition(leftPosition)) {
-                        leftInRange = get(leftPosition) == targetPlayerId;
+                        leftInRange = get(leftPosition) == targetMotoCycleId;
                         leftRegionValue = regionGrid.get(leftPosition);
                     }
 
