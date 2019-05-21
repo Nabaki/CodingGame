@@ -83,6 +83,7 @@ class Motocycle implements Cloneable {
     final int id;
     Position position;
     boolean isDead = false;
+    List<Motocycle> neighbors = null;
 
     Motocycle(int id) {
         this.id = id;
@@ -92,6 +93,10 @@ class Motocycle implements Cloneable {
         position.x += directionEnum.x;
         position.y += directionEnum.y;
         return this;
+    }
+
+    boolean isAlone(){
+        return neighbors != null;
     }
 
     /**
@@ -107,7 +112,7 @@ class Motocycle implements Cloneable {
         DirectionEnum bestDirection = null;
 
         for (DirectionEnum direction : directions) {
-            Position newPosition = new Position(direction.x + position.x, direction.y + position.y);
+            Position newPosition = position.move(direction);
             int tmpScore = scoreTypeNode(tronGrid, newPosition);
             System.err.println("Score type de noeud : " + direction + " -> " + tmpScore);
             if (bestDirection == null || tmpScore > bestScore) {
@@ -122,9 +127,6 @@ class Motocycle implements Cloneable {
      * Choix de la meilleur direction à prendre en fonction de si l'on est en mode "survie seul" ou "guerre de territoire"
      */
     DirectionEnum bestMove(TronGrid tronGrid, List<Motocycle> motocycles) {
-        boolean isAlone = new LonelyGrid(tronGrid).isAlone(id, motocycles);
-        System.err.println("isAlone : " + isAlone);
-
         //Liste des directions possibles
         List<DirectionEnum> directions = Arrays.stream(DirectionEnum.values())
                 .filter(d -> {
@@ -136,16 +138,16 @@ class Motocycle implements Cloneable {
         System.err.println("Directions valides : " + directions);
 
         // Si l'on est seul on saute l'étape voronoi qui n'a pas trop d'intéret si on est seul
-        if (!isAlone) {
+        if (!isAlone() && directions.size() > 1) {
             // Algorithme de guerre de territoire (Voronoi)
-            TreeMap<Integer, List<DirectionEnum>> collect = directions.stream()
+            TreeMap<Integer, List<DirectionEnum>> directionsByScore = directions.stream()
                     .collect(Collectors.groupingBy(
                             d -> useVoronoiInThisDirection(tronGrid, motocycles, id, d),
                             TreeMap::new,
                             Collectors.toList()
                     ));
 
-            directions = collect.lastEntry().getValue();
+            directions = directionsByScore.lastEntry().getValue();
         }
 
         if (directions.size() == 1) {
@@ -341,9 +343,6 @@ class VoronoiGrid extends AbstractGrid<Integer> {
 
     private static final int WALL = 8;
 
-    /**
-     * ATTENTION SEULEMENT POUR LES TESTS !
-     */
     VoronoiGrid(int maxX, int maxY) {
         super(maxX, maxY);
     }
@@ -543,11 +542,20 @@ class BiconnectedComponentLabelingGrid extends AbstractGrid<Integer>{
         }
 
         //Les positions des motocles ne sont pas considérées comme occupées
-        motocycles.forEach(motocycle ->
-            set(motocycle.position, null)
-        );
+        motocycles.forEach(motocycle -> set(motocycle.position, motocycle.isDead ? null : WALL));
+
+        //Délimitation des zones de la grille
+
+        //Comptage des points par zone
     }
 
+    List<Motocycle> isAlone(Motocycle target, List<Motocycle> ennemis){
+        return null;
+    }
+
+    int countPoints(Motocycle target){
+        return -1;
+    }
 
     @Override
     public void debug() {
