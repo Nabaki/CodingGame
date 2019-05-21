@@ -36,18 +36,18 @@ public class DfsGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/emptyGrid/given.txt", 3, 3);
         Player player = new Player(0);
-        player.location = new Location(0, 0);
-        tronGrid.set(player.location.x, player.location.y, player.id);
+        player.position = new Position(0, 0);
+        tronGrid.set(player.position.x, player.position.y, player.id);
 
         //When
         DfsGrid result = new DfsGrid(tronGrid, player);
         System.err.println("Result grid");
-        result.printGrid();
+        result.debug();
 
         //Then
         DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/emptyGrid/expected.txt", 3, 3);
         System.err.println("Expected grid");
-        expected.printGrid();
+        expected.debug();
 
         Assert.assertEquals(result, expected);
     }
@@ -58,18 +58,18 @@ public class DfsGridTest {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/dfsGrid/simpleCase/given.txt", 4, 3);
         Player player = new Player(0);
-        player.location = new Location(0, 1);
-        tronGrid.set(player.location.x, player.location.y, player.id);
+        player.position = new Position(0, 1);
+        tronGrid.set(player.position.x, player.position.y, player.id);
 
         //When
         DfsGrid result = new DfsGrid(tronGrid, player);
         System.err.println("Result grid");
-        result.printGrid();
+        result.debug();
 
         //Then
         DfsGrid expected = expectedDfsGridfromFile("src/test/resources/dfsGrid/simpleCase/expected.txt", 3, 3);
         System.err.println("Expected grid");
-        expected.printGrid();
+        expected.debug();
 
         Assert.assertEquals(result, expected);
     }

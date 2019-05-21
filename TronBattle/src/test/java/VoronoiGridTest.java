@@ -41,14 +41,14 @@ public class VoronoiGridTest {
     public void alonePlayerTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/alonePlayer/given.txt", 6, 3);
-        tronGrid.printGrid();
+        tronGrid.debug();
 
         Player player0 = new Player(0);
-        player0.location = new Location(0, 0);
+        player0.position = new Position(0, 0);
 
         //When
         VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(player0));
-        resultGrid.printGrid();
+        resultGrid.debug();
         int resultPoints = resultGrid.countPoints(player0.id);
 
         //Then
@@ -61,18 +61,18 @@ public class VoronoiGridTest {
     public void opposed2PlayersTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/opposed2Players/given.txt", 5, 3);
-        tronGrid.printGrid();
+        tronGrid.debug();
 
         Player player0 = new Player(0);
-        player0.location = new Location(0, 0);
+        player0.position = new Position(0, 0);
         Player player1 = new Player(1);
-        player1.location = new Location(4, 2);
+        player1.position = new Position(4, 2);
         List<Player> players = Arrays.asList(player0, player1);
 
         //Player 0 begin
         //When
         VoronoiGrid resP0beginGrid = new VoronoiGrid(tronGrid, 0, players);
-        resP0beginGrid.printGrid();
+        resP0beginGrid.debug();
         int resP0beginPoints0 = resP0beginGrid.countPoints(player0.id);
         int resP0beginPoints1 = resP0beginGrid.countPoints(player1.id);
 
@@ -85,7 +85,7 @@ public class VoronoiGridTest {
         //Player 1 begin
         //When
         VoronoiGrid resP1beginGrid = new VoronoiGrid(tronGrid, 1, players);
-        resP1beginGrid.printGrid();
+        resP1beginGrid.debug();
         int resP1beginPoints0 = resP1beginGrid.countPoints(player0.id);
         int resP1beginPoints1 = resP1beginGrid.countPoints(player1.id);
 
@@ -100,16 +100,16 @@ public class VoronoiGridTest {
     public void empty2030GridTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/empty2030Grid/given.txt", 20, 30);
-        tronGrid.printGrid();
+        tronGrid.debug();
 
         Player player0 = new Player(0);
-        player0.location = new Location(0, 0);
+        player0.position = new Position(0, 0);
         Player player1 = new Player(1);
-        player1.location = new Location(19, 29);
+        player1.position = new Position(19, 29);
 
         //When
         VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Arrays.asList(player0, player1));
-        resultGrid.printGrid();
+        resultGrid.debug();
         int resultPoints0 = resultGrid.countPoints(player0.id);
         int resultPoints1 = resultGrid.countPoints(player1.id);
 
@@ -125,14 +125,14 @@ public class VoronoiGridTest {
     public void choiceTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/choice/given.txt", 6, 3);
-        tronGrid.printGrid();
+        tronGrid.debug();
         Player player0 = new Player(0);
-        player0.location = new Location(4, 1);
+        player0.position = new Position(4, 1);
 
         //When
         VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(player0));
         int resultPoints = resultGrid.countPoints(0);
-        resultGrid.printGrid();
+        resultGrid.debug();
 
         //Then
         VoronoiGrid expectedGrid = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/choice/expected.txt", 6, 3);
@@ -145,15 +145,15 @@ public class VoronoiGridTest {
     public void revertChoiceTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/revertChoice/given.txt", 3, 6);
-        tronGrid.printGrid();
+        tronGrid.debug();
 
         Player player0 = new Player(0);
-        player0.location = new Location(1, 4);
+        player0.position = new Position(1, 4);
 
         //When
         VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(player0));
         int resultPoints = resultGrid.countPoints(0);
-        resultGrid.printGrid();
+        resultGrid.debug();
 
         //Then
         VoronoiGrid expectedGrid = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/revertChoice/expected.txt", 3, 6);
@@ -166,14 +166,14 @@ public class VoronoiGridTest {
     public void clashPointsTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/clashPoints/given.txt", 7, 6);
-        tronGrid.printGrid();
+        tronGrid.debug();
         Player player0 = new Player(0);
-        player0.location = new Location(1, 3);
+        player0.position = new Position(1, 3);
 
         //When
         VoronoiGrid resultGrid = new VoronoiGrid(tronGrid, 0, Collections.singletonList(player0));
         int resultPoints = resultGrid.countPoints(0);
-        resultGrid.printGrid();
+        resultGrid.debug();
 
         //Then
         VoronoiGrid expectedGrid = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/clashPoints/expected.txt", 7, 6);

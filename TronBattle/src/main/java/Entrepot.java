@@ -4,7 +4,7 @@ import java.util.*;
 class DfsNode {
     Integer depth;
     Integer low;
-    Location parent;
+    Position parent;
     boolean articulation = false;
     boolean wall = false;
 
@@ -17,7 +17,7 @@ class DfsNode {
         this.low = low;
     }
 
-    DfsNode(Location parent) {
+    DfsNode(Position parent) {
         this.parent = parent;
     }
 
@@ -46,20 +46,20 @@ class DfsNode {
 class DfsGrid extends AbstractGrid<DfsNode> {
 
     DfsGrid(int maxX, int maxY) {
-        super(maxX, maxY, null);
+        super(maxX, maxY);
     }
 
     DfsGrid(TronGrid tronGrid, Player player) {
-        super(tronGrid.MAX_X, tronGrid.MAX_Y, null);
+        super(tronGrid.MAX_X, tronGrid.MAX_Y);
         init(tronGrid);
-        get(player.location).wall = false;
-        populateDfs(player.location, 0);
+        get(player.position).wall = false;
+        populateDfs(player.position, 0);
     }
 
     private void init(TronGrid tronGrid) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (!tronGrid.isEmpty(x, y)) {
+                if (tronGrid.get(x, y) != null) {
                     set(x, y, new DfsNode());
                 }
             }
@@ -71,24 +71,24 @@ class DfsGrid extends AbstractGrid<DfsNode> {
      * https://en.wikipedia.org/wiki/Biconnected_component
      * Biconnected components
      */
-    private void populateDfs(Location parentLocation, int depth) {
-        DfsNode parent = get(parentLocation.x, parentLocation.y);
+    private void populateDfs(Position parentPosition, int depth) {
+        DfsNode parent = get(parentPosition.x, parentPosition.y);
         parent.depth = depth;
         parent.low = depth;
 
         int childCount = 0;
         boolean isArticulation = false;
         for (DirectionEnum direction : DirectionEnum.values()) {
-            Location childLocation = parentLocation.move(direction);
+            Position childPosition = parentPosition.move(direction);
 
-            if (isValidePosition(childLocation)) {
-                DfsNode child = get(childLocation);
+            if (isValidePosition(childPosition)) {
+                DfsNode child = get(childPosition);
                 if (child == null) { //Child is Empty
-                    child = new DfsNode(parentLocation);
-                    set(childLocation, child);
+                    child = new DfsNode(parentPosition);
+                    set(childPosition, child);
                     childCount++;
 
-                    populateDfs(childLocation, depth + 1);
+                    populateDfs(childPosition, depth + 1);
                     if (child.low >= parent.depth) {
                         isArticulation = true;
                     }
@@ -106,8 +106,8 @@ class DfsGrid extends AbstractGrid<DfsNode> {
     }
 
     @Override
-    public void printGrid() {
-        printGrid("  X  ");
+    public void debug() {
+        debug(n -> n == null ? "  X  " : n.toString());
     }
 }
 
@@ -139,25 +139,25 @@ class ConnectionNode {
 class ConnectionGrid extends AbstractGrid<ConnectionNode> {
 
     ConnectionGrid(TronGrid tronGrid, List<Player> players) {
-        super(tronGrid.MAX_X, tronGrid.MAX_Y, null);
+        super(tronGrid.MAX_X, tronGrid.MAX_Y);
         init(tronGrid, players);
 
         // Compute all connections
         //computeConnections1();
 
-        //computes connections only from my Location
+        //computes connections only from my Position
         computeConnections2(initComputeConnections2(players));
     }
 
     private void init(TronGrid tronGrid, List<Player> players) {
         players.stream().filter(player -> !player.isDead).forEach(player ->
-                set(player.location.x, player.location.y, new ConnectionNode(true))
+                set(player.position.x, player.position.y, new ConnectionNode(true))
         );
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (isEmpty(x, y)) {
-                    if (tronGrid.isEmpty(x, y)) {
+                if (get(x, y) == null) {
+                    if (tronGrid.get(x, y) == null) {
                         set(x, y, new ConnectionNode(false));
                     } else {
                         set(x, y, new ConnectionNode(true));
@@ -181,37 +181,37 @@ class ConnectionGrid extends AbstractGrid<ConnectionNode> {
         }
     }
 
-    private Set<Location> initComputeConnections2(List<Player> players) {
-        Set<Location> res = new HashSet<>();
+    private Set<Position> initComputeConnections2(List<Player> players) {
+        Set<Position> res = new HashSet<>();
         for (Player player : players) {
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Location tmpLocation = new Location(player.location.x + directionEnum.x, player.location.y + directionEnum.y);
-                if (isValidePosition(tmpLocation) && !get(tmpLocation).isWall()) {
-                    res.add(tmpLocation);
+                Position tmpPosition = new Position(player.position.x + directionEnum.x, player.position.y + directionEnum.y);
+                if (isValidePosition(tmpPosition) && !get(tmpPosition).isWall()) {
+                    res.add(tmpPosition);
                 }
             }
         }
         return res;
     }
 
-    private void computeConnections2(Set<Location> locations) {
-        Set<Location> newLocations = new HashSet<>();
-        locations.stream().filter(location -> !get(location).isWall()).forEach(location -> {
+    private void computeConnections2(Set<Position> positions) {
+        Set<Position> newPositions = new HashSet<>();
+        positions.stream().filter(position -> !get(position).isWall()).forEach(position -> {
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Location newLocation = new Location(location.x + directionEnum.x, location.y + directionEnum.y);
-                if (isValidePosition(newLocation) && !get(location).isWall()) {
-                    get(location).openedConnections.add(directionEnum);
-                    if (!get(newLocation).isProcessed()) {
-                        newLocations.add(newLocation);
+                Position newPosition = new Position(position.x + directionEnum.x, position.y + directionEnum.y);
+                if (isValidePosition(newPosition) && !get(position).isWall()) {
+                    get(position).openedConnections.add(directionEnum);
+                    if (!get(newPosition).isProcessed()) {
+                        newPositions.add(newPosition);
                     }
                 } else {
-                    get(location).closedConnections.add(directionEnum);
+                    get(position).closedConnections.add(directionEnum);
                 }
             }
         });
 
-        if (!newLocations.isEmpty()) {
-            computeConnections2(newLocations);
+        if (!newPositions.isEmpty()) {
+            computeConnections2(newPositions);
         }
     }
 
@@ -230,8 +230,8 @@ class ConnectionGrid extends AbstractGrid<ConnectionNode> {
     }
 
     @Override
-    public void printGrid() {
-        printGrid("X");
+    public void debug() {
+        debug(n -> n == null ? "X" : n.toString());
     }
 }
 
@@ -279,7 +279,7 @@ class BiconnectedComponents {
     BiconnectedComponents(int size) {
         this.size = size;
         this.adj = new ArrayList<>(size);
-        for (int i = 0; i < size; ++i){
+        for (int i = 0; i < size; ++i) {
             adj.add(new LinkedList<>());
         }
     }
@@ -319,7 +319,7 @@ class BiconnectedComponents {
                 // Check if the subtree rooted with 'v' has a
                 // connection to one of the ancestors of 'u'
                 // Case 1 -- per Strongly Connected Components Article
-                if (low[u] > low[v]){
+                if (low[u] > low[v]) {
                     low[u] = low[v];
                 }
 
@@ -340,7 +340,7 @@ class BiconnectedComponents {
             // (i.e. it's a back edge, not cross edge).
             // Case 2 -- per Strongly Connected Components Article
             else if (v != parent[u] && disc[v] < low[u]) {
-                if (low[u] > disc[v]){
+                if (low[u] > disc[v]) {
                     low[u] = disc[v];
                 }
                 st.add(new Edge(u, v));

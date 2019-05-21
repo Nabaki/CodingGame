@@ -11,8 +11,8 @@ public class ConnectionGridTest {
         TronGrid tronGrid = new TronGrid(30, 20);
 
         Player player = new Player(0);
-        player.location = new Location(0, 0);
-        tronGrid.set(player.location.x, player.location.y, player.id);
+        player.position = new Position(0, 0);
+        tronGrid.set(player.position.x, player.position.y, player.id);
 
         List<Player> players = new ArrayList<>();
         players.add(player);
@@ -21,6 +21,6 @@ public class ConnectionGridTest {
         ConnectionGrid connectionGrid = new ConnectionGrid(tronGrid, players);
 
         //THEN
-        connectionGrid.printGrid();
+        connectionGrid.debug();
     }
 }

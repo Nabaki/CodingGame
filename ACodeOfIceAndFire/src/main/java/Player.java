@@ -297,7 +297,8 @@ enum OwnerEnum {
 
 class Position {
 
-    int x, y;
+    int x;
+    int y;
 
     Position(int x, int y) {
         this.x = x;
@@ -408,7 +409,7 @@ abstract class AbstractGrid<T> {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 T node = get(x, y);
-                System.err.println(printNodeFunction.apply(node));
+                System.err.print(printNodeFunction.apply(node));
             }
             System.err.println();
         }

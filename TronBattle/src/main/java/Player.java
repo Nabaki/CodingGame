@@ -3,13 +3,14 @@
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class Player implements Cloneable {
 
     final int id;
-    Location location;
+    Position position;
     boolean isDead = false;
 
     Player(int id) {
@@ -17,8 +18,8 @@ class Player implements Cloneable {
     }
 
     private Player move(DirectionEnum directionEnum) {
-        location.x += directionEnum.x;
-        location.y += directionEnum.y;
+        position.x += directionEnum.x;
+        position.y += directionEnum.y;
         return this;
     }
 
@@ -35,8 +36,8 @@ class Player implements Cloneable {
         DirectionEnum bestDirection = null;
 
         for (DirectionEnum direction : directions) {
-            Location newLocation = new Location(direction.x + location.x, direction.y + location.y);
-            int tmpScore = scoreTypeNode(tronGrid, newLocation);
+            Position newPosition = new Position(direction.x + position.x, direction.y + position.y);
+            int tmpScore = scoreTypeNode(tronGrid, newPosition);
             System.err.println("Score type de noeud : " + direction + " -> " + tmpScore);
             if (bestDirection == null || tmpScore > bestScore) {
                 bestDirection = direction;
@@ -56,8 +57,8 @@ class Player implements Cloneable {
         //Liste des directions possibles
         List<DirectionEnum> directions = Arrays.stream(DirectionEnum.values())
                 .filter(d -> {
-                    Location newLocation = this.location.move(d);
-                    return tronGrid.isValidePosition(newLocation) && tronGrid.isEmpty(newLocation);
+                    Position newPosition = this.position.move(d);
+                    return tronGrid.isValidePosition(newPosition) && tronGrid.get(newPosition) == null;
                 })
                 .collect(Collectors.toList());
 
@@ -84,19 +85,19 @@ class Player implements Cloneable {
 
     /**
      * Différencier les angles moi-moi, ennemi-moi et ennemi-ennemi.
-     * On regarde si les cases autour de newLocation sont des murs alliés/ennemis, des cases vides
+     * On regarde si les cases autour de newPosition sont des murs alliés/ennemis, des cases vides
      */
-    private int scoreTypeNode(TronGrid tronGrid, Location newLocation) {
+    private int scoreTypeNode(TronGrid tronGrid, Position newPosition) {
         List<DirectionEnum> connections = new ArrayList<>(3);
         List<DirectionEnum> ennemiWalls = new ArrayList<>(3);
         List<DirectionEnum> myWalls = new ArrayList<>(4);
 
         for (DirectionEnum directionEnum : DirectionEnum.values()) {
-            Location tmpLocation = newLocation.move(directionEnum);
+            Position tmpPosition = newPosition.move(directionEnum);
 
-            if (!tronGrid.isValidePosition(tmpLocation) || tronGrid.get(tmpLocation) == id) {
+            if (!tronGrid.isValidePosition(tmpPosition) || tronGrid.get(tmpPosition) == id) {
                 myWalls.add(directionEnum);
-            } else if (tronGrid.isEmpty(tmpLocation)) {
+            } else if (tronGrid.get(tmpPosition) == null) {
                 connections.add(directionEnum);
             } else {
                 ennemiWalls.add(directionEnum);
@@ -189,7 +190,7 @@ class Player implements Cloneable {
                 } else {
                     tronGrid.set(X0, Y0, i);
                     tronGrid.set(X1, Y1, i);
-                    player.location = new Location(X1, Y1);
+                    player.position = new Position(X1, Y1);
                 }
             }
 
@@ -220,131 +221,36 @@ class Player implements Cloneable {
     @Override
     public Player clone() {
         Player player = new Player(id);
-        player.location = new Location(location);
+        player.position = new Position(position);
         player.isDead = this.isDead;
         return player;
     }
 
     @Override
     public String toString() {
-        return "Player{" + location +
+        return "Player{" + position +
                 ", isDead=" + isDead +
                 ", id=" + id +
                 '}';
     }
 }
 
-abstract class AbstractGrid<T> {
-
-    private final T EMPTY_NODE;
-    private final List<List<T>> tab;
-    final int MAX_X;
-    final int MAX_Y;
-
-    AbstractGrid(int maxX, int maxY, T emptyNode) {
-        MAX_X = maxX;
-        MAX_Y = maxY;
-        EMPTY_NODE = emptyNode;
-
-        tab = new ArrayList<>(MAX_X);
-        for (int x = 0; x < MAX_X; x++) {
-            tab.add(new ArrayList<>(MAX_Y));
-            for (int y = 0; y < MAX_Y; y++) {
-                tab.get(x).add(EMPTY_NODE);
-            }
-        }
-    }
-
-    boolean isValidePosition(Location location) {
-        return isValidePosition(location.x, location.y);
-    }
-
-    boolean isValidePosition(int x, int y) {
-        return x >= 0 && y >= 0 && x < MAX_X && y < MAX_Y;
-    }
-
-    boolean isEmpty(Location location) {
-        return isEmpty(location.x, location.y);
-    }
-
-    boolean isEmpty(int x, int y) {
-        return get(x, y) == EMPTY_NODE;
-    }
-
-    void printGrid(String defaultString) {
-        for (int y = 0; y < MAX_Y; y++) {
-            for (int x = 0; x < MAX_X; x++) {
-                T node = get(x, y);
-                if (!node.equals(EMPTY_NODE)) {
-                    System.err.print(node.toString());
-                } else {
-                    System.err.print(defaultString);
-                }
-            }
-            System.err.println();
-        }
-        System.err.println();
-    }
-
-    T get(int x, int y) {
-        return tab.get(x).get(y);
-    }
-
-    T get(Location location) {
-        return get(location.x, location.y);
-    }
-
-    void set(int x, int y, T value) {
-        tab.get(x).set(y, value);
-    }
-
-    void set(Location location, T value) {
-        set(location.x, location.y, value);
-    }
-
-    void setEmpty(int x, int y) {
-        set(x, y, EMPTY_NODE);
-    }
-
-    void setEmpty(Location location) {
-        setEmpty(location.x, location.y);
-    }
-
-    public abstract void printGrid();
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AbstractGrid<?> that = (AbstractGrid<?>) o;
-        return MAX_X == that.MAX_X &&
-                MAX_Y == that.MAX_Y &&
-                Objects.equals(EMPTY_NODE, that.EMPTY_NODE) &&
-                Objects.equals(tab, that.tab);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(EMPTY_NODE, tab, MAX_X, MAX_Y);
-    }
-}
-
 class TronGrid extends AbstractGrid<Integer> implements Cloneable {
 
     TronGrid(int maxX, int maxY) {
-        super(maxX, maxY, -1);
+        super(maxX, maxY);
     }
 
     @Override
-    public void printGrid() {
-        printGrid("-");
+    public void debug() {
+        debug(n -> n == null ? "-" : String.valueOf(n));
     }
 
     void resetGridForPlayerId(int idPlayer) {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 if (get(x, y) == idPlayer) {
-                    setEmpty(x, y);
+                    set(x, y, null);
                 }
             }
         }
@@ -365,52 +271,50 @@ class TronGrid extends AbstractGrid<Integer> implements Cloneable {
 class LonelyGrid extends AbstractGrid<Boolean> {
 
     LonelyGrid(TronGrid tronGrid) {
-        super(tronGrid.MAX_X, tronGrid.MAX_Y, true);
+        super(tronGrid.MAX_X, tronGrid.MAX_Y);
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (!tronGrid.isEmpty(x, y)) {
-                    set(x, y, false);
-                }
+                set(x, y, tronGrid.get(x, y) == null);
             }
         }
     }
 
     boolean isAlone(int id, List<Player> players) {
-        List<Location> ennemisLocation = players.stream()
+        List<Position> ennemisPosition = players.stream()
                 .filter(player -> player.id != id)
-                .map(player -> player.location)
+                .map(player -> player.position)
                 .collect(Collectors.toList());
 
-        Location myLocation = players.get(id).location;
-        set(myLocation, false);
-        return isAloneLoop(ennemisLocation, Collections.singletonList(myLocation));
+        Position myPosition = players.get(id).position;
+        set(myPosition, false);
+        return isAloneLoop(ennemisPosition, Collections.singletonList(myPosition));
     }
 
-    private boolean isAloneLoop(List<Location> ennemisLocations, List<Location> myLocations) {
-        List<Location> newLocations = new ArrayList<>(50);
-        for (Location location : myLocations) {
+    private boolean isAloneLoop(List<Position> ennemisPositions, List<Position> myPositions) {
+        List<Position> newPositions = new ArrayList<>(50);
+        for (Position position : myPositions) {
             for (DirectionEnum directionEnum : DirectionEnum.values()) {
-                Location newLocation = location.move(directionEnum);
-                if (ennemisLocations.contains(newLocation)) {
+                Position newPosition = position.move(directionEnum);
+                if (ennemisPositions.contains(newPosition)) {
                     return false;
-                } else if (isValidePosition(newLocation) && isEmpty(newLocation)) {
-                    set(newLocation, false);
-                    newLocations.add(newLocation);
+                } else if (isValidePosition(newPosition) && get(newPosition)) {
+                    set(newPosition, false);
+                    newPositions.add(newPosition);
                 }
             }
         }
 
-        if (newLocations.isEmpty()) {
+        if (newPositions.isEmpty()) {
             return true;
         } else {
-            return isAloneLoop(ennemisLocations, newLocations);
+            return isAloneLoop(ennemisPositions, newPositions);
         }
     }
 
     @Override
-    public void printGrid() {
-        printGrid(Boolean.TRUE.toString());
+    public void debug() {
+        debug(Object::toString);
     }
 }
 
@@ -422,7 +326,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * ATTENTION SEULEMENT POUR LES TESTS !
      */
     VoronoiGrid(int maxX, int maxY) {
-        super(maxX, maxY, -1);
+        super(maxX, maxY);
     }
 
     /**
@@ -432,57 +336,57 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * A la fin la carte est séparée entre les murs (WALL), les zones atteintes en premier par tel ou tel joueur (0,1,2,3) ou des zones qui ne peuvent être atteintes (null)
      */
     VoronoiGrid(TronGrid tronGrid, int lastPlayerToMove, List<Player> players) {
-        super(tronGrid.MAX_X, tronGrid.MAX_Y, -1);
+        super(tronGrid.MAX_X, tronGrid.MAX_Y);
 
-        //Init walls. If tronGrid is not empty then mark the location as 8 (wall)
+        //Init walls. If tronGrid is not empty then mark the position as 8 (wall)
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (!tronGrid.isEmpty(x, y)) {
+                if (tronGrid.get(x, y) != null) {
                     set(x, y, WALL);
                 }
             }
         }
 
         //Init players position.
-        Map<Player, List<Location>> locationsByPlayer = new HashMap<>(players.size());
+        Map<Player, List<Position>> positionsByPlayer = new HashMap<>(players.size());
         players.forEach(p -> {
-            List<Location> locations;
+            List<Position> positions;
             if (!p.isDead) {
-                set(p.location, WALL);
-                locations = Collections.singletonList(p.location);
+                set(p.position, WALL);
+                positions = Collections.singletonList(p.position);
             } else {
-                locations = Collections.emptyList();
+                positions = Collections.emptyList();
             }
-            locationsByPlayer.put(p, locations);
+            positionsByPlayer.put(p, positions);
         });
 
         int idPlayerTurn = lastPlayerToMove;
-        while (!locationsByPlayer.values().stream().allMatch(List::isEmpty)) {
+        while (!positionsByPlayer.values().stream().allMatch(List::isEmpty)) {
             idPlayerTurn = (idPlayerTurn + 1) % players.size();
             Player playerTurn = players.get(idPlayerTurn);
-            locationsByPlayer.put(playerTurn, voronoiLoop(playerTurn, locationsByPlayer.get(playerTurn)));
+            positionsByPlayer.put(playerTurn, voronoiLoop(playerTurn, positionsByPlayer.get(playerTurn)));
         }
 
-        //printGrid();
+        //debug();
     }
 
     /**
      * Fait avancer le jeu d'un tick pour le joueur en question
      *
      * @param player    le joueur pour lequel c'est le tour
-     * @param locations les emplacements où le joueur pourrait être à ce tour
+     * @param positions les emplacements où le joueur pourrait être à ce tour
      * @return les futurs emplacements où le joueur pourra être à son prochain tour ce joueurs
      */
-    private List<Location> voronoiLoop(Player player, List<Location> locations) {
-        return locations.stream()
+    private List<Position> voronoiLoop(Player player, List<Position> positions) {
+        return positions.stream()
                 .flatMap(l -> Arrays.stream(DirectionEnum.values()).map(l::move))
-                .filter(l -> isValidePosition(l) && isEmpty(l))
+                .filter(l -> isValidePosition(l) && get(l) == null)
                 .peek(l -> set(l, player.id))
                 .collect(Collectors.toList());
     }
 
-    public void printGrid() {
-        printGrid(".");
+    public void debug() {
+        debug(n -> n == null ? "." : String.valueOf(n));
     }
 
     //Connected-component_labeling
@@ -495,21 +399,21 @@ class VoronoiGrid extends AbstractGrid<Integer> {
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
                 if (get(x, y) == targetPlayerId) {
-                    Location upLocation = new Location(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
-                    Location leftLocation = new Location(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
+                    Position upPosition = new Position(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
+                    Position leftPosition = new Position(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
                     Integer upRegionValue = null;
                     Integer leftRegionValue = null;
                     boolean upInRange = false;
                     boolean leftInRange = false;
 
-                    if (isValidePosition(upLocation)) {
-                        upInRange = get(upLocation) == targetPlayerId;
-                        upRegionValue = regionGrid.get(upLocation);
+                    if (isValidePosition(upPosition)) {
+                        upInRange = get(upPosition) == targetPlayerId;
+                        upRegionValue = regionGrid.get(upPosition);
                     }
 
-                    if (isValidePosition(leftLocation)) {
-                        leftInRange = get(leftLocation) == targetPlayerId;
-                        leftRegionValue = regionGrid.get(leftLocation);
+                    if (isValidePosition(leftPosition)) {
+                        leftInRange = get(leftPosition) == targetPlayerId;
+                        leftRegionValue = regionGrid.get(leftPosition);
                     }
 
                     if (!upInRange && !leftInRange) {
@@ -557,7 +461,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (!regionGrid.isEmpty(x, y)) {
+                if (regionGrid.get(x, y) != null) {
                     for (int i = 0; i < links.size(); i++) {
                         if (links.get(i).contains(regionGrid.get(x, y))) {
                             points.set(i, points.get(i) + 1);
@@ -618,51 +522,47 @@ enum DirectionEnum {
     }
 
     public DirectionEnum opposite() {
-        DirectionEnum res = null;
         switch (this) {
             case RIGHT:
-                res = LEFT;
-                break;
+                return LEFT;
             case UP:
-                res = DOWN;
-                break;
+                return DOWN;
             case LEFT:
-                res = RIGHT;
-                break;
+                return RIGHT;
             case DOWN:
-                res = UP;
-                break;
+                return UP;
+            default:
+                throw new IllegalStateException("Can't be anything else ?! " + this);
         }
-        return res;
     }
 }
 
-class Location {
+class Position {
     int x;
     int y;
 
-    Location(int x, int y) {
+    Position(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
-    Location(Location location) {
-        this.x = location.x;
-        this.y = location.y;
+    Position(Position position) {
+        this.x = position.x;
+        this.y = position.y;
     }
 
-    Location move(DirectionEnum directionEnum) {
-        return new Location(x + directionEnum.x, y + directionEnum.y);
+    Position move(DirectionEnum directionEnum) {
+        return new Position(x + directionEnum.x, y + directionEnum.y);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Location)) return false;
+        if (!(o instanceof Position)) return false;
 
-        Location location = (Location) o;
+        Position position = (Position) o;
 
-        return x == location.x && y == location.y;
+        return x == position.x && y == position.y;
     }
 
     @Override
@@ -674,6 +574,80 @@ class Location {
 
     @Override
     public String toString() {
-        return "Location[" + x + ", " + y + ']';
+        return "Position[" + x + ", " + y + ']';
+    }
+}
+
+abstract class AbstractGrid<T> {
+
+    private final List<List<T>> tab;
+    final int MAX_X;
+    final int MAX_Y;
+
+    AbstractGrid(int maxX, int maxY) {
+        MAX_X = maxX;
+        MAX_Y = maxY;
+
+        tab = new ArrayList<>(MAX_X);
+        for (int x = 0; x < MAX_X; x++) {
+            List<T> column = new ArrayList<>(MAX_Y);
+            for (int y = 0; y < MAX_Y; y++) {
+                column.add(null);
+            }
+            tab.add(column);
+        }
+    }
+
+    boolean isValidePosition(Position position) {
+        return isValidePosition(position.x, position.y);
+    }
+
+    boolean isValidePosition(int x, int y) {
+        return x >= 0 && y >= 0 && x < MAX_X && y < MAX_Y;
+    }
+
+    void debug(Function<T, String> printNodeFunction) {
+        System.err.println(this.getClass().getSimpleName());
+        for (int y = 0; y < MAX_Y; y++) {
+            for (int x = 0; x < MAX_X; x++) {
+                T node = get(x, y);
+                System.err.print(printNodeFunction.apply(node));
+            }
+            System.err.println();
+        }
+        System.err.println();
+    }
+
+    T get(int x, int y) {
+        return tab.get(x).get(y);
+    }
+
+    T get(Position position) {
+        return get(position.x, position.y);
+    }
+
+    void set(int x, int y, T value) {
+        tab.get(x).set(y, value);
+    }
+
+    void set(Position position, T value) {
+        set(position.x, position.y, value);
+    }
+
+    public abstract void debug();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractGrid<?> that = (AbstractGrid<?>) o;
+        return MAX_X == that.MAX_X &&
+                MAX_Y == that.MAX_Y &&
+                Objects.equals(tab, that.tab);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tab, MAX_X, MAX_Y);
     }
 }
