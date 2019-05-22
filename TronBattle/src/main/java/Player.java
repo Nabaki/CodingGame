@@ -95,7 +95,7 @@ class Motocycle implements Cloneable {
         return this;
     }
 
-    boolean isAlone(){
+    boolean isAlone() {
         return neighbors != null;
     }
 
@@ -410,6 +410,7 @@ class VoronoiGrid extends AbstractGrid<Integer> {
     /**
      * Counting maximum possible points which can be scored by a motocycle.
      * Done by using connected-component labeling only for nodes owned by by a targeted motocycle.
+     *
      * @param targetMotocycleId the id of the targeted motocycle.
      * @return maximum points which can be scored by targeted motocycle.
      */
@@ -525,11 +526,12 @@ class VoronoiGrid extends AbstractGrid<Integer> {
     }
 }
 
-class BiconnectedComponentLabelingGrid extends AbstractGrid<Integer>{
+class ConnectedComponentGrid extends AbstractGrid<Integer> {
 
-    private static final int WALL = 0;
+    private static final int WALL = -1;
+    private Map<Integer, Integer> pointsByZone = new HashMap<>();
 
-    BiconnectedComponentLabelingGrid(TronGrid tronGrid, List<Motocycle> motocycles) {
+    ConnectedComponentGrid(TronGrid tronGrid, List<Motocycle> motocycles) {
         super(tronGrid.MAX_X, tronGrid.MAX_Y);
 
         //Init walls. If tronGrid is not empty then mark the position as WALL
@@ -544,22 +546,120 @@ class BiconnectedComponentLabelingGrid extends AbstractGrid<Integer>{
         //Les positions des motocles ne sont pas considérées comme occupées
         motocycles.forEach(motocycle -> set(motocycle.position, motocycle.isDead ? null : WALL));
 
-        //Délimitation des zones de la grille
+        //Maping de la grille
+        List<List<Integer>> links = new ArrayList<>(100);
+        int regionCounter = 0;
 
-        //Comptage des points par zone
+        for (int y = 0; y < MAX_Y; y++) {
+            for (int x = 0; x < MAX_X; x++) {
+                if (get(x, y) == null) {
+                    Position upPosition = new Position(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
+                    Position leftPosition = new Position(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
+
+                    Integer upRegionValue = isValidePosition(upPosition) ? get(upPosition) : WALL;
+                    Integer leftRegionValue = isValidePosition(leftPosition) ? get(leftPosition) : WALL;
+
+                    if (upRegionValue == WALL && leftRegionValue == WALL) {
+                        links.add(new ArrayList<>(Collections.singletonList(regionCounter)));
+                        set(x, y, regionCounter++);
+                    } else if (upRegionValue == WALL) {
+                        set(x, y, leftRegionValue);
+                    } else if (leftRegionValue == WALL) {
+                        set(x, y, upRegionValue);
+                    } else if (upRegionValue.equals(leftRegionValue)) {
+                        set(x, y, upRegionValue);
+                    } else {
+                        //Conflit entre les deux zones
+                        List<Integer> newLinks = new ArrayList<>(Collections.singletonList(regionCounter));
+                        set(x, y, regionCounter++);
+
+                        Iterator<List<Integer>> linksIterator = links.iterator();
+                        while (linksIterator.hasNext()) {
+                            List<Integer> link = linksIterator.next();
+                            if (link.contains(upRegionValue) || link.contains(leftRegionValue)) {
+                                newLinks.addAll(link);
+                                linksIterator.remove();
+                            }
+                        }
+                        links.add(newLinks);
+                    }
+                }
+            }
+        }
+
+        //Remaping de la grille et comptage des points
+        Map<Integer, Integer> newIdByZone = new HashMap<>();
+        for (int newId = 0; newId < links.size(); newId++) {
+            List<Integer> link = links.get(newId);
+            int finalNewId = newId;
+            link.forEach(zoneId -> newIdByZone.put(zoneId, finalNewId));
+        }
+
+        Stream.generate(() -> 0).limit(links.size()).forEach(zoneId -> pointsByZone.put(zoneId, 0));
+
+        for (int y = 0; y < MAX_Y; y++) {
+            for (int x = 0; x < MAX_X; x++) {
+                if (get(x, y) != WALL) {
+                    Integer newZone = newIdByZone.get(get(x, y));
+                    set(x, y, newZone);
+                    pointsByZone.put(newZone, pointsByZone.get(newZone) + 1);
+                }
+            }
+        }
     }
 
-    List<Motocycle> isAlone(Motocycle target, List<Motocycle> ennemis){
-        return null;
+    List<Motocycle> isAlone(Motocycle target, List<Motocycle> ennemis) {
+        List<Integer> targetZones = getZonesAround(target.position);
+
+        Map<Motocycle, List<Integer>> collect = ennemis.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        ennemy -> getZonesAround(ennemy.position)
+                        )
+                );
+
+        return collect.entrySet()
+                .stream()
+                .filter(e -> !Collections.disjoint(e.getValue(), targetZones))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
     }
 
-    int countPoints(Motocycle target){
-        return -1;
+    List<Integer> getZonesAround(Position position) {
+        return Arrays.stream(DirectionEnum.values())
+                .map(position::move)
+                .filter(this::isValidePosition)
+                .map(this::get)
+                .collect(Collectors.toList());
+    }
+
+    DirectionEnum getBestDirection(Position position) {
+
+        DirectionEnum bestDirectionEnum = null;
+        int bestPoints = -1;
+
+        for (DirectionEnum directionEnum : DirectionEnum.values()) {
+
+            Position newPosition = position.move(directionEnum);
+            if (isValidePosition(newPosition) && get(newPosition) != WALL) {
+                int tmpPoints = this.getPoints(newPosition);
+                if (tmpPoints > bestPoints) {
+                    bestDirectionEnum = directionEnum;
+                    bestPoints = tmpPoints;
+                }
+
+            }
+        }
+        return bestDirectionEnum;
+    }
+
+    public int getPoints(Position position) {
+        return this.pointsByZone.get(this.get(position));
     }
 
     @Override
     public void debug() {
-        debug(n -> String.format("%02d ", n));
+        debug(n -> n == WALL ? ".. " : String.format("%02d ", n));
     }
 }
 
@@ -641,7 +741,7 @@ class Position {
 
 abstract class AbstractGrid<T> {
 
-    private final List<List<T>> tab;
+    private final List<List<T>> grid;
     final int MAX_X;
     final int MAX_Y;
 
@@ -649,13 +749,13 @@ abstract class AbstractGrid<T> {
         MAX_X = maxX;
         MAX_Y = maxY;
 
-        tab = new ArrayList<>(MAX_X);
+        grid = new ArrayList<>(MAX_X);
         for (int x = 0; x < MAX_X; x++) {
             List<T> column = new ArrayList<>(MAX_Y);
             for (int y = 0; y < MAX_Y; y++) {
                 column.add(null);
             }
-            tab.add(column);
+            grid.add(column);
         }
     }
 
@@ -680,7 +780,7 @@ abstract class AbstractGrid<T> {
     }
 
     T get(int x, int y) {
-        return tab.get(x).get(y);
+        return grid.get(x).get(y);
     }
 
     T get(Position position) {
@@ -688,7 +788,7 @@ abstract class AbstractGrid<T> {
     }
 
     void set(int x, int y, T value) {
-        tab.get(x).set(y, value);
+        grid.get(x).set(y, value);
     }
 
     void set(Position position, T value) {
@@ -704,11 +804,11 @@ abstract class AbstractGrid<T> {
         AbstractGrid<?> that = (AbstractGrid<?>) o;
         return MAX_X == that.MAX_X &&
                 MAX_Y == that.MAX_Y &&
-                Objects.equals(tab, that.tab);
+                Objects.equals(grid, that.grid);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tab, MAX_X, MAX_Y);
+        return Objects.hash(grid, MAX_X, MAX_Y);
     }
 }

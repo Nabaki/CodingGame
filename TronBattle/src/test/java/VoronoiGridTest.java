@@ -97,6 +97,48 @@ public class VoronoiGridTest {
     }
 
     @Test
+    public void opposed2MotocyclesTest2() {
+        //Given
+        TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/opposed2/given.txt", 5, 3);
+        tronGrid.debug();
+
+        Motocycle motocycle0 = new Motocycle(0);
+        motocycle0.position = new Position(0, 0);
+        Motocycle motocycle1 = new Motocycle(1);
+        motocycle1.position = new Position(4, 2);
+        List<Motocycle> motocycles = Arrays.asList(motocycle0, motocycle1);
+
+        //Motocycle 0 begin
+        //When
+        ConnectedComponentGrid resP0beginGrid = new ConnectedComponentGrid(tronGrid, motocycles);
+        resP0beginGrid.debug();
+        DirectionEnum bestDirection0 = resP0beginGrid.getBestDirection(motocycle0.position);
+        DirectionEnum bestDirection1 = resP0beginGrid.getBestDirection(motocycle1.position);
+        int resP0beginPoints0 = resP0beginGrid.getPoints(motocycle0.position.move(bestDirection0));
+        int resP0beginPoints1 = resP0beginGrid.getPoints(motocycle1.position.move(bestDirection1));
+
+        //Then
+        VoronoiGrid expectedP0begin = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/opposed2/p0begin.txt", 5, 3);
+        expectedP0begin.debug();
+        Assert.assertEquals(resP0beginGrid, expectedP0begin);
+        Assert.assertEquals(5, resP0beginPoints0);
+        Assert.assertEquals(8, resP0beginPoints1);
+
+        //Motocycle 1 begin
+        //When
+        VoronoiGrid resP1beginGrid = new VoronoiGrid(tronGrid, 1, motocycles);
+        resP1beginGrid.debug();
+        int resP1beginPoints0 = resP1beginGrid.countPoints(motocycle0.id);
+        int resP1beginPoints1 = resP1beginGrid.countPoints(motocycle1.id);
+
+        //Then
+        VoronoiGrid expectedP1begin = expectedVoronoiGridfromFile("src/test/resources/voronoiGrid/opposed2/p1begin.txt", 5, 3);
+        Assert.assertEquals(resP1beginGrid, expectedP1begin);
+        Assert.assertEquals(8, resP1beginPoints0);
+        Assert.assertEquals(5, resP1beginPoints1);
+    }
+
+    @Test
     public void empty2030GridTest() {
         //Given
         TronGrid tronGrid = TronGridBuilder.fromFile("src/test/resources/voronoiGrid/empty2030Grid/given.txt", 20, 30);
