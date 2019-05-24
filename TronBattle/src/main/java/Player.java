@@ -3,7 +3,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class Player {
 
@@ -226,9 +225,10 @@ class Motocycle implements Cloneable {
     private int useVoronoiInThisDirection(TronGrid tronGrid, List<Motocycle> motocycles, int myId, DirectionEnum direction) {
         //La liste des joueurs et de leur position est mise à jour.
         List<Motocycle> newMotocycles = new ArrayList<>(motocycles);
-        newMotocycles.set(myId, clone().move(direction));
+        Motocycle me = clone().move(direction);
+        newMotocycles.set(myId, me);
 
-        int voronoiScore = new VoronoiGrid(tronGrid, myId, newMotocycles).countPoints(myId);
+        int voronoiScore = new VoronoiGrid(tronGrid, myId, newMotocycles).countPoints(me);
         System.err.println("Voronoi " + direction.name() + " -> " + voronoiScore);
         return voronoiScore;
     }
@@ -411,118 +411,13 @@ class VoronoiGrid extends AbstractGrid<Integer> {
      * Counting maximum possible points which can be scored by a motocycle.
      * Done by using connected-component labeling only for nodes owned by by a targeted motocycle.
      *
-     * @param targetMotocycleId the id of the targeted motocycle.
+     * @param motocycle the id of the targeted motocycle.
      * @return maximum points which can be scored by targeted motocycle.
      */
-    int countPoints(int targetMotocycleId) {
-        VoronoiGrid regionGrid = new VoronoiGrid(MAX_X, MAX_Y);
-        List<List<Integer>> links = new ArrayList<>(10);
-        int regionCounter = 0;
-
-        //First pass
-        for (int y = 0; y < MAX_Y; y++) {
-            for (int x = 0; x < MAX_X; x++) {
-                if (get(x, y) == targetMotocycleId) {
-                    Position upPosition = new Position(x + DirectionEnum.UP.x, y + DirectionEnum.UP.y);
-                    Position leftPosition = new Position(x + DirectionEnum.LEFT.x, y + DirectionEnum.LEFT.y);
-                    Integer upRegionValue = null;
-                    Integer leftRegionValue = null;
-                    boolean upInRange = false;
-                    boolean leftInRange = false;
-
-                    if (isValidePosition(upPosition)) {
-                        upInRange = get(upPosition) == targetMotocycleId;
-                        upRegionValue = regionGrid.get(upPosition);
-                    }
-
-                    if (isValidePosition(leftPosition)) {
-                        leftInRange = get(leftPosition) == targetMotocycleId;
-                        leftRegionValue = regionGrid.get(leftPosition);
-                    }
-
-                    if (!upInRange && !leftInRange) {
-                        links.add(new ArrayList<>(Collections.singletonList(regionCounter)));
-                        regionGrid.set(x, y, regionCounter++);
-                    } else if (upInRange && leftInRange) {
-                        if (upRegionValue.equals(leftRegionValue)) {
-                            regionGrid.set(x, y, upRegionValue);
-                        } else {
-                            boolean found = false;
-                            for (List<Integer> link : links) {
-                                if (link.contains(upRegionValue) && link.contains(leftRegionValue)) {
-                                    regionGrid.set(x, y, leftRegionValue);
-                                    found = true;
-                                    break;
-                                } else if (link.contains(upRegionValue)) {
-                                    link.addAll(suppressRegion(links, leftRegionValue));
-                                    regionGrid.set(x, y, upRegionValue);
-                                    found = true;
-                                    break;
-                                } else if (link.contains(leftRegionValue)) {
-                                    link.addAll(suppressRegion(links, upRegionValue));
-                                    regionGrid.set(x, y, leftRegionValue);
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if (!found) {
-                                regionGrid.set(x, y, leftRegionValue);
-                                links.add(new ArrayList<>(Arrays.asList(upRegionValue, leftRegionValue)));
-                            }
-                        }
-                    } else if (upInRange) { // && !leftInRange
-                        regionGrid.set(x, y, upRegionValue);
-                    } else { // leftInRange && !upInRange
-                        regionGrid.set(x, y, leftRegionValue);
-                    }
-                }
-            }
-        }
-
-        //Second pass
-        List<Integer> points = Stream.generate(() -> 0).limit(links.size()).collect(Collectors.toList());
-
-        for (int y = 0; y < MAX_Y; y++) {
-            for (int x = 0; x < MAX_X; x++) {
-                if (regionGrid.get(x, y) != null) {
-                    for (int i = 0; i < links.size(); i++) {
-                        if (links.get(i).contains(regionGrid.get(x, y))) {
-                            points.set(i, points.get(i) + 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (points.isEmpty()) {
-            return -1;
-        } else {
-            return new TreeSet<>(points).last();
-        }
-    }
-
-    /**
-     * @return the regionlinks suppressed
-     */
-    private List<Integer> suppressRegion(List<List<Integer>> regionsLinks, int regionToLink) {
-        boolean linked = false;
-        Iterator<List<Integer>> iterator = regionsLinks.iterator();
-        List<Integer> tmpList = null;
-        while (iterator.hasNext()) {
-            tmpList = iterator.next();
-            if (tmpList.contains(regionToLink)) {
-                iterator.remove();
-                linked = true;
-                break;
-            }
-        }
-
-        if (!linked) {
-            return Collections.singletonList(regionToLink);
-        } else {
-            return tmpList;
-        }
+    int countPoints(Motocycle motocycle) {
+        ConnectedComponentGrid connectedComponentGrid = new ConnectedComponentGrid(this, motocycle);
+        connectedComponentGrid.debug();
+        return connectedComponentGrid.getBestScore();
     }
 }
 
@@ -530,24 +425,24 @@ class ConnectedComponentGrid extends AbstractGrid<Integer> {
 
     private static final int WALL = -1;
     private Map<Integer, Integer> pointsByZone = new HashMap<>();
+    Motocycle motocycle;
 
-    ConnectedComponentGrid(TronGrid tronGrid, List<Motocycle> motocycles) {
-        super(tronGrid.MAX_X, tronGrid.MAX_Y);
+    ConnectedComponentGrid(VoronoiGrid voronoiGrid, Motocycle motocycle) {
+        super(voronoiGrid.MAX_X, voronoiGrid.MAX_Y);
+        this.motocycle = motocycle;
 
         //Init walls. If tronGrid is not empty then mark the position as WALL
+
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (tronGrid.get(x, y) != null) {
+                if (!voronoiGrid.get(x, y).equals(motocycle.id)) {
                     set(x, y, WALL);
                 }
             }
         }
 
-        //Les positions des motocles ne sont pas considérées comme occupées
-        motocycles.forEach(motocycle -> set(motocycle.position, motocycle.isDead ? null : WALL));
-
         //Maping de la grille
-        List<List<Integer>> links = new ArrayList<>(100);
+        Map<Integer, Integer> linksMap = new HashMap<>();
         int regionCounter = 0;
 
         for (int y = 0; y < MAX_Y; y++) {
@@ -560,7 +455,7 @@ class ConnectedComponentGrid extends AbstractGrid<Integer> {
                     Integer leftRegionValue = isValidePosition(leftPosition) ? get(leftPosition) : WALL;
 
                     if (upRegionValue == WALL && leftRegionValue == WALL) {
-                        links.add(new ArrayList<>(Collections.singletonList(regionCounter)));
+                        linksMap.put(regionCounter, regionCounter);
                         set(x, y, regionCounter++);
                     } else if (upRegionValue == WALL) {
                         set(x, y, leftRegionValue);
@@ -570,91 +465,65 @@ class ConnectedComponentGrid extends AbstractGrid<Integer> {
                         set(x, y, upRegionValue);
                     } else {
                         //Conflit entre les deux zones
-                        List<Integer> newLinks = new ArrayList<>(Collections.singletonList(regionCounter));
-                        set(x, y, regionCounter++);
-
-                        Iterator<List<Integer>> linksIterator = links.iterator();
-                        while (linksIterator.hasNext()) {
-                            List<Integer> link = linksIterator.next();
-                            if (link.contains(upRegionValue) || link.contains(leftRegionValue)) {
-                                newLinks.addAll(link);
-                                linksIterator.remove();
-                            }
+                        int lowerValue;
+                        int greaterValue;
+                        if (leftRegionValue < upRegionValue) {
+                            lowerValue = leftRegionValue;
+                            greaterValue = upRegionValue;
+                        } else {
+                            lowerValue = upRegionValue;
+                            greaterValue = leftRegionValue;
                         }
-                        links.add(newLinks);
+
+                        int lowerPointer = linksMap.get(lowerValue);
+                        int greaterPointer = linksMap.get(greaterValue);
+                        //TODO Gérer les différents cas.
+
+                        linksMap.put(greaterValue, linksMap.get(lowerValue));
+                        set(x, y, lowerValue);
                     }
                 }
             }
         }
 
         //Remaping de la grille et comptage des points
-        Map<Integer, Integer> newIdByZone = new HashMap<>();
-        for (int newId = 0; newId < links.size(); newId++) {
-            List<Integer> link = links.get(newId);
-            int finalNewId = newId;
-            link.forEach(zoneId -> newIdByZone.put(zoneId, finalNewId));
+        for (Map.Entry<Integer, Integer> entry : linksMap.entrySet()) {
+            Integer key = entry.getKey();
+            if (key.equals(entry.getValue())) {
+                pointsByZone.put(key, 0);
+            }
         }
-
-        Stream.generate(() -> 0).limit(links.size()).forEach(zoneId -> pointsByZone.put(zoneId, 0));
 
         for (int y = 0; y < MAX_Y; y++) {
             for (int x = 0; x < MAX_X; x++) {
-                if (get(x, y) != WALL) {
-                    Integer newZone = newIdByZone.get(get(x, y));
-                    set(x, y, newZone);
-                    pointsByZone.put(newZone, pointsByZone.get(newZone) + 1);
+                Integer zoneId = get(x, y);
+                if (zoneId != WALL) {
+                    Integer newZoneId = linksMap.get(zoneId);
+                    set(x, y, newZoneId);
+                    pointsByZone.put(newZoneId, pointsByZone.get(newZoneId) + 1);
                 }
             }
         }
     }
 
-    List<Motocycle> isAlone(Motocycle target, List<Motocycle> ennemis) {
-        List<Integer> targetZones = getZonesAround(target.position);
+    void updateLoop(Map<Integer, Integer> linksMap) {
 
-        Map<Motocycle, List<Integer>> collect = ennemis.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        ennemy -> getZonesAround(ennemy.position)
-                        )
-                );
-
-        return collect.entrySet()
-                .stream()
-                .filter(e -> !Collections.disjoint(e.getValue(), targetZones))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
     }
 
-    List<Integer> getZonesAround(Position position) {
-        return Arrays.stream(DirectionEnum.values())
-                .map(position::move)
-                .filter(this::isValidePosition)
-                .map(this::get)
-                .collect(Collectors.toList());
-    }
+    int getBestScore() {
 
-    DirectionEnum getBestDirection(Position position) {
-
-        DirectionEnum bestDirectionEnum = null;
         int bestPoints = -1;
-
         for (DirectionEnum directionEnum : DirectionEnum.values()) {
 
-            Position newPosition = position.move(directionEnum);
+            Position newPosition = motocycle.position.move(directionEnum);
             if (isValidePosition(newPosition) && get(newPosition) != WALL) {
-                int tmpPoints = this.getPoints(newPosition);
+                int tmpPoints = this.pointsByZone.get(this.get(newPosition));
                 if (tmpPoints > bestPoints) {
-                    bestDirectionEnum = directionEnum;
                     bestPoints = tmpPoints;
                 }
-
             }
         }
-        return bestDirectionEnum;
-    }
-
-    public int getPoints(Position position) {
-        return this.pointsByZone.get(this.get(position));
+        return bestPoints;
     }
 
     @Override
@@ -810,5 +679,15 @@ abstract class AbstractGrid<T> {
     @Override
     public int hashCode() {
         return Objects.hash(grid, MAX_X, MAX_Y);
+    }
+}
+
+class Pair<K, V> {
+    K key;
+    V value;
+
+    Pair(K key, V value) {
+        this.key = key;
+        this.value = value;
     }
 }
